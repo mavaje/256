@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "@webpack-cli/generators": "^3.0.7",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.3",
+    "typescript": "^5.2.2"
+  }
+}
