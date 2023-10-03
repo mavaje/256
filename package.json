@@ -4,7 +4,11 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "qrcode": "^1.5.3",
-    "typescript": "^5.2.2"
+    "@types/webpack-env": "^1.18.2",
+    "css-loader": "^6.8.1",
+    "raw-loader": "^4.0.2",
+    "style-loader": "^3.3.3",
+    "ts-loader": "^9.4.3",
+    "typescript": "^5.1.3"
   }
 }
