@@ -12,48 +12,9 @@ body {
     align-items: center;
 }
 
-#screen {
-    --scale: 265px;
-
-    width: calc(var(--scale) * 256px);
-    height: calc(var(--scale) * 256px);
-    position: relative;
-    cursor: none;
-}
-
 #canvas {
     width: 100%;
     height: 100%;
     image-rendering: pixelated;
-}
-
-#screen.filter > #canvas {
-    filter: blur(calc(var(--scale) * 1px / 4));
-}
-
-#screen.filter > #filter {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-
-    background-image:
-        linear-gradient(0deg, black,
-            white, white, black
-        ),
-        linear-gradient(90deg, black,
-            #f00, #f00, black,
-            #0f0, #0f0, black,
-            #00f, #00f, black
-        );
-    background-size: calc(100% / 256) calc(100% / 256);
-    background-repeat: repeat;
-    background-blend-mode: multiply;
-    mix-blend-mode: multiply;
-
-    filter: blur(calc(var(--scale) * 1px / 8));
-
-    opacity: 0.5;
+    cursor: none;
 }

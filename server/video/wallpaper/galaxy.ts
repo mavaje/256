@@ -1,6 +1,6 @@
 import {Wallpaper} from "./wallpaper";
 import {Raster} from "../raster";
-import {Colour} from "../palette";
+import {Color} from "../palette";
 
 class Star {
 
@@ -11,23 +11,13 @@ class Star {
     x: number;
     y: number;
     size: number;
-    color = Colour.WHITE;
+    color = Color.WHITE;
 
-    constructor() {
+    constructor(rainbow = false) {
         this.angle = Math.random() * Math.PI * 2;
         this.velocity = 1.025 + Math.random() * 0.05;
         this.distance = 10 + Math.random();
-        if (Math.random() < 0.1) {
-            this.color = [
-                Colour.RED,
-                Colour.ORANGE,
-                Colour.YELLOW,
-                Colour.LIME,
-                Colour.CYAN,
-                Colour.BLUE,
-                Colour.PINK,
-            ][Math.floor(Math.random() * 7)];
-        }
+        if (rainbow) this.color = Math.floor(Math.random() * 16);
     }
 
     update() {
@@ -38,7 +28,7 @@ class Star {
     }
 
     render(raster: Raster) {
-        raster.circle([this.x, this.y], this.size, this.color);
+        raster.circle([this.x, this.y], this.size+1, this.color);
     }
 }
 
@@ -51,9 +41,9 @@ export class Galaxy extends Wallpaper {
         this.stars.push(new Star());
     }
 
-    render() {
-        this.raster.fill(Colour.BLACK);
-        this.stars.forEach(star => star.render(this.raster));
+    render(raster: Raster) {
+        raster.fill(Color.BLACK);
+        this.stars.forEach(star => star.render(raster));
         this.stars = this.stars.filter(star => star.distance < 256);
     }
 }

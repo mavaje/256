@@ -1,5 +1,4 @@
 
-export type Color = number[];
+export type RGB = number[];
 
-export interface iPalette extends Array<Color> {
-}
+export interface iPalette extends Array<RGB> {}

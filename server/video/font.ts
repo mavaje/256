@@ -1,8 +1,10 @@
 import {Raster} from "./raster";
+import {Color} from "./palette";
 
 export class Font {
 
-    static NEWLINE = 0x0A;
+    static BG_COLOR = Color.BLACK;
+    static FG_COLOR = Color.WHITE;
 
     static MONO: Font;
     static SANS: Font;
@@ -12,18 +14,18 @@ export class Font {
 
     constructor(public line_height: number) {}
 
-    static async load_fonts() {
-        Font.MONO = await Font.load('mono', 7);
-        Font.SANS = await Font.load('sans', 7);
+    static async load() {
+        Font.MONO = await Font.load_font('mono', 7);
+        Font.SANS = await Font.load_font('sans', 7);
     }
 
-    static async load(font_name: string, line_height: number): Promise<Font> {
+    static async load_font(font_name: string, line_height: number): Promise<Font> {
         const font = new Font(line_height);
 
         let i: number;
         for (i = 0; i < 256; i++) {
             const file_name = i.toString(16).padStart(2, '0');
-            font.glyphs[i] = await Raster.from_file(`fonts/${font_name}/${file_name}`, null, line_height, 0) ?? font.unknown_glyph;
+            font.glyphs[i] = (await Raster.from_file(`fonts/${font_name}/${file_name}`, Font.BG_COLOR))?.sub_raster([0, 0], undefined, line_height) ?? font.unknown_glyph;
             if (i === 0) font.unknown_glyph = font.glyphs[0];
         }
 

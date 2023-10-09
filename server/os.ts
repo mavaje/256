@@ -1,15 +1,19 @@
-import {Folder} from "./fs/folder";
 import {Raster} from "./video/raster";
 import {Window} from "./video/window";
 import {Server} from "./server";
 import {Cursor} from "./video/cursor";
 import {Client} from "../client/client";
 import {Wallpaper} from "./video/wallpaper/wallpaper";
-import {SolidColour} from "./video/wallpaper/solid-colour";
+import {SolidColor} from "./video/wallpaper/solid-color";
 import {iInput} from "../api/input";
-import {Palette} from "./video/palette";
+import {Color, Palette} from "./video/palette";
 import {CONFIG} from "../config";
-import {Font} from "./video/font";
+import {Galaxy} from "./video/wallpaper/galaxy";
+import {Toolbar} from "./video/toolbar";
+import {Renderable} from "./video/renderable";
+import {Image} from "./video/wallpaper/image";
+import {Static} from "./video/wallpaper/static";
+import {FS} from "./fs/fs";
 
 export class OS {
 
@@ -17,18 +21,21 @@ export class OS {
 
     server: Server;
 
-    directory: Folder;
+    fs: FS;
 
     cycle_id: any;
     last_frame: number = 0;
 
-    palette: Palette = Palette.DEFAULT;
+    palette: Palette = Palette.NEON;
     raster: Raster;
 
     cursor: Cursor;
 
-    wallpaper: Wallpaper = new SolidColour();
+    wallpaper: Wallpaper = new SolidColor();
+    toolbar: Toolbar = new Toolbar();
     windows: Window[];
+
+    input: iInput;
 
     constructor() {
         OS.instance = this;
@@ -36,21 +43,15 @@ export class OS {
         this.server = new Server();
         this.server.register_client(new Client(0));
 
-        this.directory = new Folder();
+        this.fs = new FS();
         this.raster = new Raster(CONFIG.screen_x, CONFIG.screen_y);
         this.windows = [];
-        this.cursor = Cursor.HAND;
-    }
-
-    handle_input(input: iInput[]) {
-        this.cursor.handle_input(input);
+        this.cursor = Cursor.POINTER;
     }
 
     async start() {
         this.cycle_id = Math.random();
         this.cycle(this.cycle_id);
-
-        this.raster.font = Font.MONO;
     }
 
     cycle(cycle_id: any) {
@@ -67,37 +68,28 @@ export class OS {
 
     update() {
         Raster.reset_all();
-
         this.wallpaper.update();
+        this.toolbar.update();
+        if (this.input) {
+            this.cursor.update(this.input);
+            this.fs.update(this.input);
+        }
     }
 
     render() {
-        this.raster.clear();
-
-        this.wallpaper.render();
-        this.raster.stamp(this.wallpaper.raster);
-
-        const text = [...Array(256)].map((_, i) => String.fromCharCode(i) + (i % 16 === 15 ? '\n' : '')).join('');
-
-        this.raster.font = Font.MONO;
-        this.raster.print(text);
-        this.raster.print('\n\n');
-        this.raster.print('Hello world!');
-
-        this.raster.cursor = [128, 0];
-
-        this.raster.font = Font.SANS;
-        this.raster.print(text);
-        this.raster.print('\n\n');
-        this.raster.print('Hello world!');
-
-        this.windows.forEach(window =>
-            this.raster.stamp(window.raster, window.position)
-        );
-
-        this.cursor.render(this.raster);
-
         const {palette, raster, cursor} = this;
-        this.handle_input(this.server.send({palette, raster, cursor}));
+
+        raster.clear();
+
+        ([
+            this.wallpaper,
+            this.toolbar,
+            this.fs,
+            ...this.windows,
+            this.cursor,
+        ] as Renderable[]).forEach(r => r.render(raster));
+
+        this.server.send({palette, raster, cursor})
+            .then(input => this.input = input);
     }
 }

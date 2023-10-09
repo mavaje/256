@@ -1,6 +1,8 @@
 import {iRaster} from "../../api/raster";
 import {Font} from "./font";
 import {load_text_file} from "../../assets/asset_loader";
+import {Color} from "./palette";
+import {KeyboardKeys} from "../../api/input";
 
 export type Point = [number, number];
 
@@ -17,8 +19,8 @@ export class Raster implements iRaster {
     private _offset = 0;
 
     constructor(
-        private width: number,
-        private height: number,
+        readonly width: number,
+        readonly height: number,
         private mask: number = null
     ) {
         Raster.instances.push(this);
@@ -32,10 +34,10 @@ export class Raster implements iRaster {
         }
     }
 
-    static async from_file(file_path: string, max_width: number = null, max_height: number = null, mask?: number): Promise<Raster> {
+    static async from_file(file_path: string, mask?: number): Promise<Raster> {
         const char_map: { [char: string]: number; } = {
-            ' ': 0,
-            '#': 1,
+            ' ': Color.BLACK,
+            '#': Color.WHITE,
         };
         const char_matcher = new RegExp(`[0-9a-f${Object.keys(char_map).join('')}]`, 'i');
 
@@ -57,7 +59,7 @@ export class Raster implements iRaster {
 
         height = pixels.length;
 
-        const raster = new Raster(max_width ?? width, max_height ?? height, mask);
+        const raster = new Raster(width, height, mask);
         let x: number, y: number;
         for (x = 0; x < width; x++) for (y = 0; y < height; y++) {
             raster.pixel([x, y], pixels[y]?.[x] || 0);
@@ -254,23 +256,23 @@ export class Raster implements iRaster {
         this._offset = 0;
     }
 
-    private print_char(char: number, color: number) {
-        if (char === Font.NEWLINE) {
-            this._cursor[1] += this._font.line_height + 1;
+    private print_char(char: number, color: number, font: Font) {
+        if (char === KeyboardKeys.NEW_LINE) {
+            this._cursor[1] += font.line_height + 1;
             this._offset = 0;
         } else {
             if (this._offset > 0) this._offset++;
             const point: Point = [...this._cursor];
             point[0] += this._offset;
-            const glyph = this._font.glyphs[char];
-            this.stamp(glyph, point);
+            const glyph = font.glyphs[char];
+            this.stamp(glyph, point, undefined, {[Font.FG_COLOR]: color});
             this._offset += glyph.width;
         }
     }
 
-    print(text: string, point?: Point, color = this._color) {
+    print(text: string, point?: Point, color = this._color, font = this._font) {
         if (point) this.cursor = point;
-        text.split('').forEach(c => this.print_char(c.charCodeAt(0), color));
+        text.split('').forEach(c => this.print_char(c.charCodeAt(0), color, font));
         return;
     }
 
@@ -293,9 +295,9 @@ export class Raster implements iRaster {
         return this._font.line_height * n_lines + (n_lines - 1);
     }
 
-    sub_raster([x, y]: Point, width: number, height: number) {
-        const raster = new Raster(width, height);
-        let dx, dy;
+    sub_raster([x, y]: Point, width: number = this.width, height: number = this.height) {
+        const raster = new Raster(width, height, this.mask);
+        let dx: number, dy: number;
         for (dx = 0; dx < width; dx++) for (dy = 0; dy < height; dy++) {
             const color = this.pixel_at([x + dx, y + dy]);
             raster.pixel([dx, dy], color);
@@ -303,17 +305,53 @@ export class Raster implements iRaster {
         return raster;
     }
 
-    stamp(raster: Raster, dst: Point = [0, 0], scale = 1, mask: number = raster.mask) {
-        scale = Math.floor(scale);
+    stamp(raster: Raster, dst: Point = [0, 0], scale = 1, map: {[color: number]: number} | ((color: number) => number) = {}) {
+        if (!raster) return;
+        if (scale > 1) {
+            scale = Math.floor(scale);
+        } else {
+            scale = 1 / Math.ceil(1 / scale);
+        }
         if (scale < 1) return;
         let x: number, y: number;
         for (x = 0; x < raster.width; x++) for (y = 0; y < raster.height; y++) {
-            const color = raster.pixel_at([x, y]);
-            if (color !== mask) this.square([
-                dst[0] + x * scale,
-                dst[1] + y * scale,
-            ], scale, color);
+            let color = raster.pixel_at([x, y]);
+            if (color !== raster.mask) {
+                if (typeof map === 'function') {
+                    color = map(color) ?? color;
+                } else {
+                    color = map[color] ?? color;
+                }
+                this.square([
+                    dst[0] + x * scale,
+                    dst[1] + y * scale,
+                ], scale, color);
+            }
         }
+    }
+
+    center(raster: Raster, map: {[color: number]: number} | ((color: number) => number) = {}) {
+        const x = (this.width - raster.width) / 2;
+        const y = (this.height - raster.height) / 2;
+        this.stamp(raster, [x, y], undefined, map);
+    }
+
+    contain(raster: Raster, map: {[color: number]: number} | ((color: number) => number) = {}) {
+        const [sx, sy] = ['width', 'height'].map(field =>
+            Math.floor(this[field] / raster[field]));
+        const s = Math.min(sx, sy);
+        const x = (this.width - raster.width * s) / 2;
+        const y = (this.height - raster.height * s) / 2;
+        this.stamp(raster, [x, y], s, map);
+    }
+
+    cover(raster: Raster, map: {[color: number]: number} | ((color: number) => number) = {}) {
+        const [sx, sy] = ['width', 'height'].map(field =>
+            Math.ceil(this[field] / raster[field]));
+        const s = Math.max(sx, sy);
+        const x = (this.width - raster.width * s) / 2;
+        const y = (this.height - raster.height * s) / 2;
+        this.stamp(raster, [x, y], s, map);
     }
 
     clone(): Raster {

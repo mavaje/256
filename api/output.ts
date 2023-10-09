@@ -1,6 +1,6 @@
 import {iRaster} from "./raster";
 import {iPalette} from "./palette";
-import {iCursor} from "./cursor";
+import {iCursor} from "./input";
 
 export interface iOutput {
     palette: iPalette;

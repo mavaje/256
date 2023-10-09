@@ -1,42 +1,46 @@
 import {Point, Raster} from "./raster";
-import {Colour} from "./palette";
-import {iInput} from "../../api/input";
-import {iCursor} from "../../api/cursor";
+import {Color} from "./palette";
+import {iCursor, iInput} from "../../api/input";
+import {Renderable} from "./renderable";
+import {CONFIG} from "../../config";
 
-export class Cursor implements iCursor {
+export class Cursor implements iCursor, Renderable {
 
     static POINTER: Cursor;
     static HAND: Cursor;
 
-    position: Point = [0, 0];
-    color = Colour.WHITE;
+    color = Color.WHITE;
 
     raster_default: Raster;
     raster_pressed: Raster;
 
+    position: Point = [0, 0];
+    pressed = false;
+
     constructor(private offset: Point = [0, 0]) {}
 
-    static async load_cursors() {
-        Cursor.POINTER = await Cursor.load('pointer');
-        Cursor.HAND = await Cursor.load('hand', [2, 1]);
+    static async load() {
+        Cursor.POINTER = await Cursor.load_cursor('pointer');
+        Cursor.HAND = await Cursor.load_cursor('hand', [2, 1]);
     }
 
-    static async load(cursor_name: string, offset?: Point): Promise<Cursor> {
+    static async load_cursor(cursor_name: string, offset?: Point): Promise<Cursor> {
         const cursor = new Cursor(offset);
 
-        cursor.raster_default = await Raster.from_file(`cursors/${cursor_name}/default`);
-        cursor.raster_pressed = await Raster.from_file(`cursors/${cursor_name}/pressed`) ?? cursor.raster_default;
+        cursor.raster_default = await Raster.from_file(`cursors/${cursor_name}/default`, Color.BLACK);
+        cursor.raster_pressed = await Raster.from_file(`cursors/${cursor_name}/pressed`, Color.BLACK) ?? cursor.raster_default;
 
         return cursor;
     }
 
-    handle_input(inputs: iInput[]) {
-        this.position = inputs[0].cursor.position;
+    update(input: iInput) {
+        this.position[0] = input.cursor.position[0];
+        this.position[1] = input.cursor.position[1];
+        this.pressed = input.cursor.pressed;
     }
 
     render(raster: Raster) {
-        const pressed = false;
         const point = [0, 1].map(i => this.position[i] - this.offset[i]) as Point;
-        raster.stamp(pressed ? this.raster_pressed : this.raster_default, point, 1, 0);
+        raster.stamp(this.pressed ? this.raster_pressed : this.raster_default, point);
     }
 }
