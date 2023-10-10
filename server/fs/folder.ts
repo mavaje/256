@@ -49,29 +49,16 @@ export class Folder extends FSItem {
                 raster.square([x, y], 32, Color.NAVY);
             }
 
-            const icon = new Raster(16, 16, 0);
+            const icon = new Raster(16, 16, FS.MASK);
             icon.contain(item.icon);
             raster.stamp(icon, [x + 8, y]);
 
-            const trimmed = item.name.trim();
-            let line_1 = trimmed;
-            let i = line_1.length;
-            while (raster.text_width(line_1) > 30) {
-                i--;
-                line_1 = trimmed.slice(0, i).trim();
-            }
+            const text_area = new Raster(30, 14, 2);
+            const text = text_area.fit_text(item.name);
+            text_area.center(text);
 
-            let line_2 = trimmed.slice(i).trim();
-            let j = i + line_2.length;
-            while (raster.text_width(line_2) > 30) {
-                j--;
-                line_2 = trimmed.slice(i, j).trim() + '...';
-            }
-
-            const name_fit = line_1 + '\n' + line_2;
-
-            const offset = (32 - raster.text_width(name_fit)) / 2;
-            raster.print(name_fit, [x + offset, y + 17]);
+            raster.stamp(text_area, [x + 1, y + 18], 1, {[Color.WHITE]: Color.BLACK});
+            raster.stamp(text_area, [x + 1, y + 17]);
 
             x += 32;
             if (x > 0 && x + 32 > raster.width) {

@@ -10,8 +10,11 @@ export class Cursor implements iCursor {
 
     start_listeners() {
         document.addEventListener('mousemove', this.cursor_move.bind(this));
+
         document.addEventListener('pointerdown', this.set_state.bind(this, true));
         document.addEventListener('pointerup', this.set_state.bind(this, false));
+
+        document.addEventListener('contextmenu', event => event.preventDefault());
     }
 
     reconfigure(scale: number, offset: [number, number]) {
@@ -29,7 +32,6 @@ export class Cursor implements iCursor {
     }
 
     set_state(state: boolean, event: MouseEvent) {
-        event.preventDefault();
         this.cursor_move(event);
         this.pressed = state;
     }

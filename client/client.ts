@@ -4,7 +4,7 @@ import {iOutput} from "../api/output";
 import {CONFIG} from "../config";
 import {Palette} from "../server/video/palette";
 import {Cursor} from "./cursor";
-import {iInput, iKeyInput, PlayerInputMap} from "../api/input";
+import {iInput} from "../api/input";
 import {KeyboardInput} from "./keyboard";
 import {PlayerKeyboardInput} from "./player-keyboard";
 
@@ -141,7 +141,7 @@ export class Client implements iClient {
 
         if (this.crt) {
             this.screen_context.globalCompositeOperation = 'darken';
-            this.screen_context.fillStyle = '#0000003f';
+            this.screen_context.fillStyle = '#0000007f';
             this.screen_context.fillRect(ox, oy, CONFIG.screen_x * s, CONFIG.screen_y * s);
             this.screen_context.globalCompositeOperation = 'lighten';
         } else {

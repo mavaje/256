@@ -21,7 +21,6 @@ export abstract class KeyInput implements iKeyInput {
 
     set_state(state: boolean, event: KeyboardEvent) {
         event.preventDefault();
-        console.log(event);
         const {key, code, repeat, shiftKey} = event;
         const data = this.key_data[code] ||= {count: 0};
         data.key = key;

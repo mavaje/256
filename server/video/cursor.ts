@@ -20,15 +20,15 @@ export class Cursor implements iCursor, Renderable {
     constructor(private offset: Point = [0, 0]) {}
 
     static async load() {
-        Cursor.POINTER = await Cursor.load_cursor('pointer');
-        Cursor.HAND = await Cursor.load_cursor('hand', [2, 1]);
+        Cursor.POINTER = await Cursor.load_cursor('pointer', undefined, Color.PINK);
+        Cursor.HAND = await Cursor.load_cursor('hand', [2, 1], Color.PINK);
     }
 
-    static async load_cursor(cursor_name: string, offset?: Point): Promise<Cursor> {
+    static async load_cursor(cursor_name: string, offset?: Point, mask?: number): Promise<Cursor> {
         const cursor = new Cursor(offset);
 
-        cursor.raster_default = await Raster.from_file(`cursors/${cursor_name}/default`, Color.BLACK);
-        cursor.raster_pressed = await Raster.from_file(`cursors/${cursor_name}/pressed`, Color.BLACK) ?? cursor.raster_default;
+        cursor.raster_default = await Raster.from_file(`cursors/${cursor_name}/default`, mask);
+        cursor.raster_pressed = await Raster.from_file(`cursors/${cursor_name}/pressed`, mask) ?? cursor.raster_default;
 
         return cursor;
     }

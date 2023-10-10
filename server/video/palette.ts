@@ -29,7 +29,7 @@ export class Palette extends Array<RGB> implements iPalette {
     ].map(Palette.rgb));
 
     static NEON = new Palette(...[
-        '#000000', '#ffffff', '#3f5f7f', '#afbfdf',
+        '#000000', '#ffffff', '#3f5f7f', '#9fbfdf',
         '#ff007f', '#7f1f00', '#ff4f00', '#ffff00',
         '#ff9f1f', '#00ff00', '#007f3f', '#00dfff',
         '#005fff', '#1f007f', '#7f00bf', '#ff8fff',

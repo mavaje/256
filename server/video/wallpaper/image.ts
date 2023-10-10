@@ -12,7 +12,6 @@ export class Image extends Wallpaper {
 
     static async load() {
         Image.TEST = await Image.load_background('test');
-        console.log(Image.TEST);
     }
 
     static async load_background(file: string) {
