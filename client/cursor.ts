@@ -1,9 +1,12 @@
 import {iCursor} from "../api/input";
+import {Point} from "../server/video/raster";
 
 export class Cursor implements iCursor {
 
     position: [number, number] = [0, 0];
+    state: boolean = false;
     pressed: boolean = false;
+    persist: boolean = false;
 
     scale: number = 1;
     offset: [number, number] = [0, 0];
@@ -28,11 +31,18 @@ export class Cursor implements iCursor {
         this.position = [
             (x * devicePixelRatio - ox) / s,
             (y * devicePixelRatio - oy) / s,
-        ];
+        ].map(Math.floor) as Point;
     }
 
     set_state(state: boolean, event: MouseEvent) {
         this.cursor_move(event);
-        this.pressed = state;
+        this.state = state;
+        this.pressed = state || this.persist;
+        if (state) this.persist = true;
+    }
+
+    reset_persist() {
+        this.persist = false;
+        this.pressed = this.state;
     }
 }

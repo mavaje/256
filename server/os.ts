@@ -1,18 +1,15 @@
 import {Raster} from "./video/raster";
-import {Window} from "./video/window";
+import {Window} from "./video/window/window";
 import {Server} from "./server";
 import {Cursor} from "./video/cursor";
 import {Client} from "../client/client";
 import {Wallpaper} from "./video/wallpaper/wallpaper";
 import {SolidColor} from "./video/wallpaper/solid-color";
 import {iInput} from "../api/input";
-import {Color, Palette} from "./video/palette";
+import {Palette} from "./video/palette";
 import {CONFIG} from "../config";
-import {Galaxy} from "./video/wallpaper/galaxy";
 import {Toolbar} from "./video/toolbar";
 import {Renderable} from "./video/renderable";
-import {Image} from "./video/wallpaper/image";
-import {Static} from "./video/wallpaper/static";
 import {FS} from "./fs/fs";
 
 export class OS {
@@ -29,13 +26,40 @@ export class OS {
     palette: Palette = Palette.NEON;
     raster: Raster;
 
-    cursor: Cursor;
+    cursor: Cursor = Cursor.HAND;
 
     wallpaper: Wallpaper = new SolidColor();
     toolbar: Toolbar = new Toolbar();
     windows: Window[];
 
-    input: iInput;
+    input: iInput = {};
+
+    static toggle_window(window: Window) {
+        const os = OS.instance;
+        if (os.windows.includes(window) && !window.minimised) {
+            window.minimised = true;
+        } else {
+            OS.open_window(window);
+        }
+    }
+
+    static open_window(window: Window) {
+        OS.close_window(window);
+        const os = OS.instance;
+        os.windows.push(window);
+        window.minimised = false;
+    }
+
+    static close_window(window: Window) {
+        const os = OS.instance;
+        const i = os.windows.indexOf(window);
+        if (i >= 0) os.windows.splice(i, 1);
+    }
+
+    static windows() {
+        const os = OS.instance;
+        return os.windows;
+    }
 
     constructor() {
         OS.instance = this;
@@ -46,7 +70,6 @@ export class OS {
         this.fs = new FS();
         this.raster = new Raster(CONFIG.screen_x, CONFIG.screen_y);
         this.windows = [];
-        this.cursor = Cursor.POINTER;
     }
 
     async start() {
@@ -66,14 +89,24 @@ export class OS {
         });
     }
 
+    renderables(): Renderable[] {
+        return [
+            this.wallpaper,
+            this.toolbar,
+            this.fs,
+            ...this.windows,
+            this.cursor,
+        ];
+    }
+
     update() {
         Raster.reset_all();
-        this.wallpaper.update();
-        this.toolbar.update();
-        if (this.input) {
-            this.cursor.update(this.input);
-            this.fs.update(this.input);
-        }
+        Cursor.cursor_ready(false);
+        const renderables = this.renderables();
+        renderables.reverse();
+        renderables.forEach(renderable => {
+            renderable.update(this.input);
+        });
     }
 
     render() {
@@ -81,13 +114,7 @@ export class OS {
 
         raster.clear();
 
-        ([
-            this.wallpaper,
-            this.toolbar,
-            this.fs,
-            ...this.windows,
-            this.cursor,
-        ] as Renderable[]).forEach(r => r.render(raster));
+        this.renderables().forEach(r => r.render(raster));
 
         this.server.send({palette, raster, cursor})
             .then(input => this.input = input);

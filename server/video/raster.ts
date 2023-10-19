@@ -3,7 +3,6 @@ import {Font} from "./font";
 import {load_text_file} from "../../assets/asset_loader";
 import {Color} from "./palette";
 import {KeyboardKeys} from "../../api/input";
-import {FS} from "../fs/fs";
 
 export type Point = [number, number];
 
@@ -81,7 +80,7 @@ export class Raster implements iRaster {
         this._color = color;
     }
 
-    pixel([x, y]: Point, color = this._color) {
+    pixel([x, y]: Point, color: number) {
         if (color == null) return;
         const {round} = Math;
         x = round(x);
@@ -103,7 +102,7 @@ export class Raster implements iRaster {
     }
 
     clear() {
-        this.fill(0);
+        this.fill(this.mask ?? Color.BLACK);
     }
 
     fill(color = this._color) {
@@ -297,7 +296,7 @@ export class Raster implements iRaster {
         return font.line_height * n_lines + (n_lines - 1);
     }
 
-    fit_text(text: string, font = this._font): Raster {
+    fit_text(text: string, color = this._color, font = this._font): Raster {
         const lines = text.trim()
             .split('\n')
             .filter(Boolean)
@@ -313,10 +312,10 @@ export class Raster implements iRaster {
             let j = 0;
             while (j < words.length) {
                 let word = words[j++];
-                let k = word.length;
-                let rest = null;
+                let k = word.length - 1;
+                let rest = '';
                 while (this.text_width(word, font) > this.width) {
-                    rest = word.slice(k);
+                    rest = word[k] + rest;
                     word = word.slice(0, k--);
                 }
                 if (rest) words.splice(j, 0, rest);
@@ -332,11 +331,24 @@ export class Raster implements iRaster {
             lines.splice(i, 1, ...sub_lines);
             i += sub_lines.length;
         }
+        let truncated = false;
+        while (this.text_height(lines.join('\n')) >= this.height) {
+            lines.splice(lines.length - 1, 1);
+            truncated = true;
+        }
+        if (truncated) {
+            const line_n = lines.length - 1;
+            let i = lines[line_n].length - 1;
+            while (this.text_width(lines[line_n] + '...') >= this.width) {
+                lines[line_n] = lines[line_n].slice(0, i--).trim();
+            }
+            lines[line_n] += '...';
+        }
         text = lines.join('\n');
         const width = this.text_width(text, font);
         const height = this.text_height(text, font);
-        const raster = new Raster(width, height, Color.BLACK);
-        raster.print(text, [0, 0], Color.WHITE, font);
+        const raster = new Raster(width, height, color === 0 ? 1 : 0);
+        raster.print(text, [0, 0], color, font);
         return raster;
     }
 
@@ -391,9 +403,6 @@ export class Raster implements iRaster {
         s = s > 1 ? Math.floor(s) : 1 / Math.ceil(1 / s);
         const x = (this.width - raster.width * s) / 2;
         const y = (this.height - raster.height * s) / 2;
-        if (this.width === 8 && this.height === 8) {
-            console.log(s, [x, y]);
-        }
         this.stamp(raster, [x, y], s, map);
     }
 

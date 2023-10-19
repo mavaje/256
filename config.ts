@@ -4,4 +4,6 @@ export const CONFIG = {
     screen_y: 256,
 
     fps: 60,
+
+    crt: false,
 };

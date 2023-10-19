@@ -18,6 +18,7 @@ export interface iCursor {
 
 export interface iInput {
     keyboard?: iKeyInput;
-    players: PlayerInputMap;
+    players?: PlayerInputMap;
     cursor?: iCursor;
+    handled?: boolean;
 }

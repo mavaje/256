@@ -1,15 +1,18 @@
 import {Raster} from "../video/raster";
+import {Folder} from "./folder";
 
 export abstract class FSItem {
 
     name: string;
     icon: Raster;
 
+    parent?: Folder;
+
     constructor(name: string = '') {
         this.name = name;
     }
 
-    render_icon(raster: Raster) {
-        raster.contain(this.icon);
+    launch() {
+        console.log(`launching ${this.name} not supported`);
     }
 }

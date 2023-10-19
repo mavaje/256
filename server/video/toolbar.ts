@@ -1,12 +1,14 @@
-import {Raster} from "./raster";
+import {Point, Raster} from "./raster";
 import {Renderable} from "./renderable";
 import {Color} from "./palette";
 import {NavigatorPlus} from "../../web-api/navigator";
 import {BatteryManager} from "../../web-api/battery-manager";
 import {Font} from "./font";
 import {NetworkInformation} from "../../web-api/network-information";
-import * as net from "net";
 import {CONFIG} from "../../config";
+import {OS} from "../os";
+import {Clickable} from "./clickable";
+import {iInput} from "../../api/input";
 
 export class Toolbar implements Renderable {
 
@@ -20,6 +22,8 @@ export class Toolbar implements Renderable {
     time = '00:00:00';
     battery: BatteryManager = null;
     network: NetworkInformation = null;
+
+    buttons: { [key: string]: Clickable } = {};
 
     constructor() {
         (navigator as NavigatorPlus)
@@ -42,7 +46,7 @@ export class Toolbar implements Renderable {
         return Raster.from_file(`toolbar/${icon}`, Color.BLACK);
     }
 
-    update() {
+    update(input: iInput) {
         const now = new Date();
         const [hh, mm, ss] = [
             now.getHours(),
@@ -52,25 +56,49 @@ export class Toolbar implements Renderable {
         this.time = `${hh}:${mm}:${ss}`;
 
         this.network = (navigator as NavigatorPlus).connection;
+
+        let position = 0;
+        this.buttons = Object.fromEntries(OS.windows().map(window => {
+            let button = this.buttons[window.key];
+            if (!button) {
+                button = new Clickable(
+                    [16 * position++, 0],
+                    16, 16,
+                    (raster, {hovered, pressed}) => {
+                        raster.clear();
+                        if (pressed) {
+                            raster.fill(Color.BLUE);
+                        } else if (hovered) {
+                            raster.fill(Color.NAVY);
+                        }
+                        raster.center(window.icon);
+                    },
+                    Color.BLACK,
+                );
+                button.on_click(() => OS.toggle_window(window));
+            } else {
+                button.resize([16 * position++, 0]);
+            }
+            button.update(input);
+            return [window.key, button];
+        }));
     }
 
     render(raster: Raster) {
-        raster.rect([0, 0], CONFIG.screen_x, 7, Color.BLACK);
+        raster.rect([0, 0], CONFIG.screen_x, 16, Color.BLACK);
         raster.font = Font.SANS;
 
-        let left = 1;
+        Object.values(this.buttons).forEach(button => {
+            button.render(raster);
+        });
 
-        raster.stamp(Toolbar.ICON_KEYBOARD, [left, 1]);
-        left += Toolbar.ICON_KEYBOARD.width + 3;
-
-        raster.stamp(Toolbar.ICON_GAMEPAD, [left, 1]);
-        left += Toolbar.ICON_GAMEPAD.width + 3;
-
-        let right = 255;
+        const corner: Point = [CONFIG.screen_x - 1, 1];
 
         if (this.time) {
-            right -= raster.text_width(this.time);
-            raster.print(this.time, [right, 1], Color.WHITE);
+            corner[0] -= raster.text_width(this.time);
+            raster.print(this.time, corner, Color.WHITE);
+            corner[0] = CONFIG.screen_x - 1;
+            corner[1] += raster.text_height(this.time) + 1;
         }
 
         if (this.battery) {
@@ -82,8 +110,8 @@ export class Toolbar implements Renderable {
                 [3]: Color.YELLOW,
             }[battery_level] || Color.WHITE;
 
-            right -= battery_icon.width + 3;
-            raster.stamp(battery_icon, [right, 1], 1, n => battery_level < n ? Color.GREY : color,);
+            corner[0] -= battery_icon.width + 3;
+            raster.stamp(battery_icon, corner, 1, n => battery_level < n ? Color.GREY : color,);
         }
 
         const network_level = {
@@ -92,17 +120,17 @@ export class Toolbar implements Renderable {
             '3g': 2,
             '4g': 3,
             '5g': 3,
-        }[this.network.effectiveType] ?? 0;
+        }[this.network?.effectiveType] ?? 0;
         if (network_level > 0) {
             const color = {
                 [1]: Color.RED,
                 [2]: Color.YELLOW,
             }[network_level] || Color.WHITE;
-            right -= Toolbar.ICON_WIFI.width + 3;
-            raster.stamp(Toolbar.ICON_WIFI, [right, 1], 1, n => network_level < n ? Color.GREY : color);
+            corner[0] -= Toolbar.ICON_WIFI.width + 3;
+            raster.stamp(Toolbar.ICON_WIFI, corner, 1, n => network_level < n ? Color.GREY : color);
         } else {
-            right -= Toolbar.ICON_WIFI_OFF.width + 3;
-            raster.stamp(Toolbar.ICON_WIFI_OFF, [right, 1]);
+            corner[0] -= Toolbar.ICON_WIFI_OFF.width + 3;
+            raster.stamp(Toolbar.ICON_WIFI_OFF, corner);
         }
 
     }
