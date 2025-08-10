@@ -1,42 +1,36 @@
-import {iServer} from "../api/server";
-import {iClient} from "../api/client";
-import {iCursor, iInput, iKeyInput, PlayerInputMap} from "../api/input";
-import {iOutput} from "../api/output";
-import {KeyboardInput} from "../client/keyboard";
+import express from 'express';
+import http from 'http';
+import {Server as SocketIO} from 'socket.io';
+import {ClientConnection} from "./client-connection";
+import path from "path";
+import {EventDown, EventUp} from "../api/event";
 
-export class Server implements iServer {
+export class Server {
+    connections: {
+        [id: string]: ClientConnection;
+    } = {};
 
-    clients: iClient[] = [];
+    start() {
+        const app = express();
+        const server = http.createServer(app);
+        const io = new SocketIO<EventUp, EventDown>(server);
 
-    register_client(client: iClient) {
-        this.clients.push(client);
-    }
+        app.use(express.static(path.join(__dirname, '../client/public')));
 
-    async send(output: iOutput): Promise<iInput> {
-        const inputs = await Promise.all(
-            this.clients.map(client => client.receive(output))
-        );
-
-        const keyboard: iKeyInput = { keys: {} };
-        const players: PlayerInputMap = {};
-        const cursor: iCursor = {
-            position: [...output.cursor.position],
-            pressed: false,
-        };
-
-        inputs.forEach(input => {
-            Object.entries(input.keyboard.keys).forEach(([key, state]) => {
-                if (state) keyboard.keys[key] = true;
-            });
-            Object.entries(input.players).forEach(([id, player]) => players[id] = player);
-            [0, 1].forEach(i => cursor.position[i] += input.cursor.position[i] - output.cursor.position[i]);
-            cursor.pressed ||= input.cursor.pressed;
+        io.on('connection', socket => {
+            this.assign(new ClientConnection(this, socket));
         });
 
-        return {
-            keyboard,
-            players,
-            cursor,
-        };
+        server.listen(0, () => {
+            const address = server.address();
+            console.log('listening on', address, 0);
+        });
+    }
+
+    assign(connection: ClientConnection) {
+        Object.values(this.connections)
+            .filter(({id}) => id === connection.id)
+            .forEach(({id}) => delete this.connections[id])
+        this.connections[connection.id] = connection;
     }
 }
