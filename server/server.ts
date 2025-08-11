@@ -1,13 +1,18 @@
+import path from "path";
 import express from 'express';
 import http from 'http';
 import {Server as SocketIO} from 'socket.io';
-import {ClientConnection} from "./client-connection";
-import path from "path";
-import {EventDown, EventUp} from "../api/event";
+import {Client} from "./client";
+import {EventDown, EventUp} from "../common/event";
+import {Display} from "../common/display";
+import {Palette} from "../common/palette";
+import {EV} from "./ev";
 
 export class Server {
-    connections: {
-        [id: string]: ClientConnection;
+    static PORT = 256;
+
+    clients: {
+        [id: string]: Client;
     } = {};
 
     start() {
@@ -16,21 +21,37 @@ export class Server {
         const io = new SocketIO<EventUp, EventDown>(server);
 
         app.use(express.static(path.join(__dirname, '../client/public')));
+        app.get('/', (_, response) =>
+            response.type('html').sendFile(path.join(__dirname, '../client/client.html')));
 
         io.on('connection', socket => {
-            this.assign(new ClientConnection(this, socket));
+            const client = new Client(socket);
+            client.attach_to(this);
+            EV.emit('new-client', client);
         });
 
-        server.listen(0, () => {
+        server.listen(Server.PORT, () => {
             const address = server.address();
-            console.log('listening on', address, 0);
+            console.log('listening on', address, Server.PORT);
         });
     }
 
-    assign(connection: ClientConnection) {
-        Object.values(this.connections)
-            .filter(({id}) => id === connection.id)
-            .forEach(({id}) => delete this.connections[id])
-        this.connections[connection.id] = connection;
+    assign(client: Client) {
+        Object.entries(this.clients)
+            .filter(([_, {id}]) => id === client.id)
+            .forEach(([id]) => delete this.clients[id]);
+        this.clients[client.id] = client;
+    }
+
+    serve_palette(palette: Palette) {
+        Object.values(this.clients)
+            .filter(({disconnected}) => !disconnected)
+            .forEach(client => client.send_palette(palette));
+    }
+
+    serve_displays(display: Display) {
+        Object.values(this.clients)
+            .filter(({disconnected}) => !disconnected)
+            .forEach(client => client.send_display(display));
     }
 }

@@ -3,5 +3,6 @@ export type EventUp = {
 };
 
 export type EventDown = {
-
+    'palette': (palette: string[]) => void,
+    'display': (buffer: ArrayBufferLike) => void,
 };

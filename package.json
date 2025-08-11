@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "server": "npx tsc && node server/engine"
+    "server": "npx tsc && webpack && node server/engine"
   },
   "name": "256",
   "version": "1.0.0",
