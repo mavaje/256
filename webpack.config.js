@@ -1,13 +1,14 @@
 const path = require('path');
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 /** @type {import('webpack').Configuration} */
 module.exports = {
     mode: 'development',
     entry: {
         [256]: './client/client.ts',
+        style: './client/style.scss',
     },
     output: {
-        // filename: '[name].js',
         path: path.resolve(__dirname, 'client/public'),
     },
     resolve: {
@@ -26,7 +27,7 @@ module.exports = {
             {
                 test: /\.scss$/,
                 use: [
-                    'style-loader',
+                    MiniCssExtractPlugin.loader,
                     'css-loader',
                     'sass-loader'
                 ],
@@ -34,4 +35,9 @@ module.exports = {
             },
         ],
     },
+    plugins: [
+        new MiniCssExtractPlugin({
+            // filename: './/[name].css',
+        }),
+    ],
 };

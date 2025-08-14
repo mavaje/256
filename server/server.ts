@@ -4,9 +4,8 @@ import http from 'http';
 import {Server as SocketIO} from 'socket.io';
 import {Client} from "./client";
 import {EventDown, EventUp} from "../common/event";
-import {Display} from "../common/display";
+import {Display} from "./display";
 import {Palette} from "../common/palette";
-import {EV} from "./ev";
 
 export class Server {
     static PORT = 256;
@@ -27,7 +26,6 @@ export class Server {
         io.on('connection', socket => {
             const client = new Client(socket);
             client.attach_to(this);
-            EV.emit('new-client', client);
         });
 
         server.listen(Server.PORT, () => {

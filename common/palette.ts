@@ -20,7 +20,7 @@ export const PURPLE = 14;
 export const PINK = 15;
 
 export class Palette {
-    constructor(private colours: Colour[]) {}
+    constructor(public colours: Colour[]) {}
 
     to_array() {
         return this.colours.map(colour => colour.hex());

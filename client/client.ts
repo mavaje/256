@@ -3,6 +3,8 @@ import {io, Socket} from "socket.io-client";
 import {Canvas} from "./canvas";
 import {Palette} from "../common/palette";
 import {Colour} from "../common/colour";
+import {Keyboard} from "./keyboard";
+import {Cursor} from "./cursor";
 
 export class Client {
     static COOKIE_ID_KEY = 'player_id';
@@ -11,6 +13,8 @@ export class Client {
     socket: Socket<EventDown, EventUp> = null;
 
     canvas = new Canvas();
+    cursor: Cursor;
+    keyboard: Keyboard;
 
     constructor() {
         this.id = Client.get_id_cookie();
@@ -40,11 +44,11 @@ export class Client {
 
             this.socket.on('display', buffer => {
                 this.canvas.update(buffer);
-                if (!this.canvas.element.isConnected) {
-                    document.body.append(this.canvas.element);
-                }
             });
         });
+
+        this.cursor = new Cursor(this.socket);
+        this.keyboard = new Keyboard(this.socket);
     }
 }
 

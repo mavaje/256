@@ -35,9 +35,13 @@ export class Colour {
         }
     }
 
+    rgb_bytes() {
+        return this.rgb()
+            .map(v => Math.round(v * 255));
+    }
+
     hex(): string {
-        return this._hex ??= '#' + this.rgb()
-            .map(v => Math.round(255 * v))
+        return this._hex ??= '#' + this.rgb_bytes()
             .map(v => v.toString(16))
             .map(x => x.padStart(2, '0'))
             .join('');

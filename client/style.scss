@@ -1,0 +1,20 @@
+html {
+    background-color: #1f1f1f;
+
+    body {
+        width: 100vw;
+        height: 100vh;
+        margin: 0;
+        overflow: hidden;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        #canvas {
+            cursor: none;
+            width: 100vmin;
+            height: 100vmin;
+            image-rendering: pixelated;
+        }
+    }
+}

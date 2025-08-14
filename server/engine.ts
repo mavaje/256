@@ -1,11 +1,9 @@
-import {readFile} from "node:fs/promises";
 import {Server} from "./server";
-import {Display} from "../common/display";
-import {Colour} from "../common/colour";
-import {Palette} from "../common/palette";
-import {EV} from "./ev";
+import {Display} from "./display";
+import {EventTransmitter} from "./event-transmitter";
+import {PaletteFile} from "./file/palette-file";
 
-export class Engine {
+export class Engine extends EventTransmitter {
     static FRAME_RATE = 30;
 
     running = false;
@@ -13,41 +11,38 @@ export class Engine {
     server: Server = new Server();
     display: Display = new Display();
 
-    start() {
-        this.running = true;
-        this.server.start();
-        this.cycle();
+    constructor() {
+        super();
 
-        EV.on('new-client', client => {
+        const palette_file = PaletteFile.load('neon', undefined, 'pal');
+        PaletteFile.save(palette_file.palette, 'neon');
+        this.display.palette = palette_file.palette;
+        this.server.serve_palette(this.display.palette)
+
+        this.on('client-joined', client => {
             if (this.display.palette) {
                 client.send_palette(this.display.palette);
             }
         });
+    }
 
-        this.load_palette('neon');
+    start() {
+        this.running = true;
+        this.server.start();
+        this.cycle();
     }
 
     cycle() {
         if (this.running) {
             const time = Date.now();
 
-            this.display.randomise();
+            this.display.update();
+
             this.server.serve_displays(this.display);
 
             const delay = Math.max(0, 1000 / Engine.FRAME_RATE + time - Date.now());
             setTimeout(()=> this.cycle(), delay);
         }
-    }
-
-    async load_palette(name: string) {
-        const filename = `resources/palettes/${name}.pal`;
-        const content = await readFile(filename, 'utf8');
-        const palette = new Palette(content
-            .split('\n')
-            .filter(Boolean)
-            .map(Colour.from_hex));
-        this.display.palette = palette;
-        this.server.serve_palette(palette);
     }
 
     stop() {

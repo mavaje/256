@@ -1,28 +1,36 @@
-import {Display} from "../common/display";
+import {ColourID, Palette} from "../common/palette";
+import {Sprite} from "../common/sprite";
 
-export class Canvas extends Display {
-    element: HTMLCanvasElement;
+export class Canvas extends Sprite {
+    public static ELEMENT = document.getElementById('canvas') as HTMLCanvasElement;
+
     private context: CanvasRenderingContext2D;
 
+    public palette: Palette;
+
     constructor() {
-        super();
-        this.element = document.createElement('canvas');
-        this.element.width = this.element.height = 256;
-        this.context = this.element.getContext('2d');
+        super(256, 256);
+        this.context = Canvas.ELEMENT.getContext('2d');
+        this.context.imageSmoothingEnabled = false;
+    }
+
+    image_data() {
+        if (!this.palette) return null;
+        const image_data = new ImageData(this.width, this.height);
+        this.pixels.forEach((id: ColourID, i) => {
+            const colour = this.palette.get_colour(id);
+            const [r, g, b] = colour.rgb_bytes();
+            image_data.data[4 * i] = r;
+            image_data.data[4 * i + 1] = g;
+            image_data.data[4 * i + 2] = b;
+            image_data.data[4 * i + 3] = 255;
+        });
+        return image_data;
     }
 
     update(buffer: ArrayBufferLike) {
-        this.pixels = new Uint8Array(buffer);
-        this.render();
-    }
-
-    render() {
-        if (this.palette) {
-            for (let x = 0; x < 256; x++) for (let y = 0; y < 256; y++) {
-                const colour_id = this.get_colour(x, y);
-                this.context.fillStyle = this.palette.get_colour(colour_id).hex();
-                this.context.fillRect(x, y, 1, 1);
-            }
-        }
+        this.pixels = new Uint8ClampedArray(buffer);
+        const image_data = this.image_data();
+        if (image_data) this.context.putImageData(image_data, 0, 0);
     }
 }
