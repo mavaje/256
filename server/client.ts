@@ -41,6 +41,6 @@ export class Client {
     }
 
     send_display(display: Display) {
-        this.socket.emit('display', display.pixels.buffer);
+        this.socket.emit('display', display.buffer());
     }
 }

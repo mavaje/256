@@ -1,5 +1,6 @@
 import {ColourID, Palette} from "../common/palette";
 import {Sprite} from "../common/sprite";
+import {ByteArray} from "../common/byte-array";
 
 export class Canvas extends Sprite {
     public static ELEMENT = document.getElementById('canvas') as HTMLCanvasElement;
@@ -28,8 +29,8 @@ export class Canvas extends Sprite {
         return image_data;
     }
 
-    update(buffer: ArrayBufferLike) {
-        this.pixels = new Uint8ClampedArray(buffer);
+    update(buffer: ArrayBuffer) {
+        this.pixels = new ByteArray(buffer);
         const image_data = this.image_data();
         if (image_data) this.context.putImageData(image_data, 0, 0);
     }

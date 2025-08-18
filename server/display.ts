@@ -1,20 +1,18 @@
 import {Sprite} from "../common/sprite";
-import {BLACK, Palette, RED, WHITE} from "../common/palette";
-import {readFile} from "node:fs/promises";
-import {Colour} from "../common/colour";
+import {BLACK, RED, WHITE} from "../common/palette";
 import {Cursor} from "./cursor";
 import {EVT} from "./event-transmitter";
 
 export class Display extends Sprite {
+    protected _supports_transparency = false;
 
     private cursors: {
         [client_id: string]: Cursor;
     } = {};
 
-    public palette: Palette;
-
     constructor() {
         super(256, 256);
+        this.fill(BLACK);
 
         EVT.on('client-joined', client => {
             this.cursors[client.id] = new Cursor(client);
@@ -26,21 +24,16 @@ export class Display extends Sprite {
         });
     }
 
-    async load_palette(name: string) {
-        const filename = `resources/palettes/${name}.pal`;
-        const content = await readFile(filename, 'utf8');
-        this.palette = new Palette(content
-            .split('\n')
-            .filter(Boolean)
-            .map(Colour.from_hex));
-    }
-
     update() {
-        this.flood(BLACK);
+        this.fill(BLACK);
 
         Object.values(this.cursors)
             .forEach(({x, y, pressed}) => {
-                this.draw_rect(x, y, x + 10, y + 10, pressed ? RED : WHITE);
+                this.fill_rect(x - 5, y - 5, 10, 10, pressed ? RED : WHITE);
             });
+    }
+
+    buffer() {
+        return this.pixels.buffer;
     }
 }

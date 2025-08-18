@@ -2,6 +2,8 @@ import {Server} from "./server";
 import {Display} from "./display";
 import {EventTransmitter} from "./event-transmitter";
 import {PaletteFile} from "./file/palette-file";
+import {SpriteFile} from "./file/sprite-file";
+import {Palette} from "../common/palette";
 
 export class Engine extends EventTransmitter {
     static FRAME_RATE = 30;
@@ -10,20 +12,30 @@ export class Engine extends EventTransmitter {
 
     server: Server = new Server();
     display: Display = new Display();
+    palette: Palette = null;
 
     constructor() {
         super();
 
-        const palette_file = PaletteFile.load('neon', undefined, 'pal');
-        PaletteFile.save(palette_file.palette, 'neon');
-        this.display.palette = palette_file.palette;
-        this.server.serve_palette(this.display.palette)
+        const palette_file = PaletteFile.load('neon');
+        this.palette = palette_file.palette;
+
+        palette_file.save('neon-test');
+
+        const test = SpriteFile.load(
+            palette_file.palette,
+            'active-32', '/Users/mjensen/wreck/dst/icons',
+        );
+
+        test.save('hammer', SpriteFile.PATH);
+
+        if (test.exists()) this.display.stamp(test.sprite);
 
         this.on('client-joined', client => {
-            if (this.display.palette) {
-                client.send_palette(this.display.palette);
-            }
+            client.send_palette(this.palette);
         });
+
+        this.on('cursor-down', () => this.screenshot());
     }
 
     start() {
@@ -36,7 +48,7 @@ export class Engine extends EventTransmitter {
         if (this.running) {
             const time = Date.now();
 
-            this.display.update();
+            // this.display.update();
 
             this.server.serve_displays(this.display);
 
@@ -47,6 +59,15 @@ export class Engine extends EventTransmitter {
 
     stop() {
         this.running = false;
+    }
+
+    screenshot() {
+        SpriteFile.save(
+            this.display,
+            this.palette,
+            `screenshot_${new Date().toISOString()}`,
+            'resources/screenshots',
+        );
     }
 }
 

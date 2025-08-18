@@ -1,11 +1,9 @@
 import {ColourID, Palette} from "../../common/palette";
-import {PNG} from "./png/png";
+import {PNGFile} from "./png-file";
 import {Sprite} from "../../common/sprite";
 
-export class PaletteFile extends PNG {
+export class PaletteFile extends PNGFile {
     static PATH = 'resources/palettes';
-
-    public palette: Palette;
 
     protected constructor(
         name: string,
@@ -13,11 +11,11 @@ export class PaletteFile extends PNG {
         extension?: string,
     ) {
         super(name, path, extension);
-        this.image = new Sprite(16, 16);
+        this.sprite = new Sprite(16, 16);
         for (let i = 0; i < 16; i++) {
             const x = 4 * (i % 4);
             const y = 4 * Math.floor(i / 4);
-            this.image.draw_rect(x, y, x + 3, y + 3, i as ColourID);
+            this.sprite.fill_rect(x, y, x + 3, y + 3, i as ColourID);
         }
     }
 
