@@ -37,7 +37,7 @@ export class Client {
     }
 
     send_palette(palette: Palette) {
-        this.socket.emit('palette', palette.to_array());
+        this.socket.emit('palette', palette.colours.map(colour => colour.hex()));
     }
 
     send_display(display: Display) {

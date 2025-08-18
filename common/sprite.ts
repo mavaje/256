@@ -1,10 +1,20 @@
-import {ColourID, TRANSPARENT} from "./palette";
+import {BLACK, ColourID, TRANSPARENT, WHITE} from "./palette";
 import {ByteArray} from "./byte-array";
+
+export type StampOptions = {
+    scale?: number;
+    scale_x?: number;
+    scale_y?: number;
+    rotate?: number;
+};
 
 export class Sprite {
     protected pixels: ByteArray;
-    protected _has_transparency = false;
-    protected _supports_transparency = true;
+    protected supports_transparency = true;
+
+    protected previous_point: [number, number] = [0, 0];
+
+    current_colour: ColourID = WHITE;
 
     constructor(
         public width: number,
@@ -15,26 +25,19 @@ export class Sprite {
 
         if (pixels) {
             this.pixels.set(pixels);
-            this.update_transparency();
         } else {
             this.fill(TRANSPARENT);
         }
     }
 
-    protected update_transparency() {
-        if (this._supports_transparency) {
-            this._has_transparency = this.pixels.some(id => id === TRANSPARENT);
-        }
-    }
-
-    protected is_valid_colour(colour_id: ColourID) {
-        return this._supports_transparency
-            ? colour_id <= TRANSPARENT
-            : colour_id < TRANSPARENT;
+    protected is_valid_colour(colour: number = this.current_colour): colour is ColourID {
+        return this.supports_transparency
+            ? colour <= TRANSPARENT
+            : colour < TRANSPARENT;
     }
 
     has_transparency() {
-        return this._supports_transparency && this._has_transparency;
+        return this.pixels.some(id => id === TRANSPARENT);
     }
 
     array_2d(column_major = false): number[][] {
@@ -67,29 +70,29 @@ export class Sprite {
     }
 
     get_pixel(x: number, y: number): ColourID {
+        x = Math.floor(x);
+        y = Math.floor(y);
+
         return this.pixels[y * this.height + x] as ColourID;
     }
 
-    set_pixel(x: number, y: number, colour_id: ColourID) {
-        if (this.has_pixel(x, y) && this.is_valid_colour(colour_id)) {
-            this.pixels[y * this.height + x] = colour_id;
-            if (this._supports_transparency) {
-                if (colour_id === TRANSPARENT) {
-                    this._has_transparency = true;
-                } else {
-                    this.update_transparency();
-                }
-            }
+    set_pixel(x: number, y: number, colour: ColourID = this.current_colour) {
+        x = Math.floor(x);
+        y = Math.floor(y);
+
+        if (this.has_pixel(x, y) && this.is_valid_colour(colour)) {
+            this.pixels[y * this.height + x] = colour;
         }
     }
 
-    fill(colour_id: ColourID) {
+    fill(colour_id: ColourID = this.current_colour) {
         if (this.is_valid_colour(colour_id)) {
             this.pixels.fill(colour_id);
-            if (this._supports_transparency) {
-                this._has_transparency = colour_id === TRANSPARENT;
-            }
         }
+    }
+
+    clear() {
+        this.fill(this.supports_transparency ? TRANSPARENT : BLACK);
     }
 
     fill_rect(
@@ -97,9 +100,14 @@ export class Sprite {
         y: number,
         width: number,
         height: number,
-        colour_id: ColourID,
+        colour: ColourID = this.current_colour,
     ) {
-        if (!this.is_valid_colour(colour_id)) return;
+        if (!this.is_valid_colour(colour)) return;
+
+        x = Math.floor(x);
+        y = Math.floor(y);
+        width = Math.floor(width);
+        height = Math.floor(height);
 
         if (x < 0) {
             width += x;
@@ -117,21 +125,71 @@ export class Sprite {
         if (width > 0 && height > 0) {
             for (let dy = 0; dy < height; dy++) {
                 this.pixels.fill(
-                    colour_id,
+                    colour,
                     (y + dy) * this.width + x,
                     (y + dy) * this.width + x + width,
                 );
             }
+        }
+    }
 
-            if (colour_id === TRANSPARENT) {
-                this._has_transparency = true;
-            } else {
-                this.update_transparency();
+    line(x1: number, y1: number, colour?: ColourID): void;
+    line(x1: number, y1: number, x2: number, y2: number, colour?: ColourID): void;
+    line(...args: number[]): void {
+        let x1: number, y1: number, x2: number, y2: number, colour: number;
+
+        if (args.length < 4) {
+            [x1, y1, colour = this.current_colour] = args;
+            [x2, y2] = this.previous_point;
+        } else {
+            [x1, y1, x2, y2, colour = this.current_colour] = args;
+        }
+
+        if (!this.is_valid_colour(colour)) return;
+
+        this.previous_point = [x1, y1];
+
+        x1 = Math.floor(x1);
+        y1 = Math.floor(y1);
+        x2 = Math.floor(x2);
+        y2 = Math.floor(y2);
+
+        const dx = Math.abs(x2 - x1);
+        const dy = Math.abs(y2 - y1);
+        const sx = Math.sign(x2 - x1);
+        const sy = Math.sign(y2 - y1);
+
+        let x = x1;
+        let y = y1;
+        let error = dx - dy;
+
+        while (true) {
+            this.set_pixel(x, y, colour);
+            if (x === x2 && y === y2) return;
+            const e2 = error * 2;
+            if (e2 > -dy) {
+                error -= dy;
+                x += sx;
+            }
+            if (e2 < dx) {
+                error += dx;
+                y += sy;
             }
         }
     }
 
-    stamp(sprite: Sprite, x: number = 0, y: number = 0) {
+    stamp(sprite: Sprite, x: number = 0, y: number = 0, options: StampOptions = {}) {
+        x = Math.floor(x);
+        y = Math.floor(y);
+        const {
+            scale = 1,
+            scale_x = scale,
+            scale_y = scale,
+            rotate = 0,
+        } = options;
+
+        const transparent = sprite.has_transparency();
+
         const sx1 = Math.max(x, 0);
         const sx2 = Math.min(x + sprite.width, 256);
         if (sx1 < sx2) {
@@ -143,7 +201,7 @@ export class Sprite {
                         sy * sprite.width + dx1,
                         sy * sprite.width + dx2,
                     );
-                    if (sprite.has_transparency()) {
+                    if (transparent) {
                         row.forEach((id: ColourID, i) => {
                             if (id < TRANSPARENT) {
                                 this.pixels[(y + sy) * this.width + sx1 + i] = id;
@@ -153,10 +211,6 @@ export class Sprite {
                         this.pixels.push(row, (y + sy) * this.width + sx1);
                     }
                 }
-            }
-
-            if (this.has_transparency()) {
-                this.update_transparency();
             }
         }
     }

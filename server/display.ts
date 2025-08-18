@@ -1,16 +1,17 @@
 import {Sprite} from "../common/sprite";
-import {BLACK, RED, WHITE} from "../common/palette";
+import {BLACK} from "../common/palette";
 import {Cursor} from "./cursor";
 import {EVT} from "./event-transmitter";
+import {ResourceProvider} from "./resource-provider";
 
 export class Display extends Sprite {
-    protected _supports_transparency = false;
+    protected supports_transparency = false;
 
     private cursors: {
         [client_id: string]: Cursor;
     } = {};
 
-    constructor() {
+    constructor(protected resource_provide: ResourceProvider) {
         super(256, 256);
         this.fill(BLACK);
 
@@ -24,12 +25,14 @@ export class Display extends Sprite {
         });
     }
 
-    update() {
-        this.fill(BLACK);
+    update(tick: number) {
+        this.clear();
+
+        const sprite = this.resource_provide.sprite('neon');
 
         Object.values(this.cursors)
             .forEach(({x, y, pressed}) => {
-                this.fill_rect(x - 5, y - 5, 10, 10, pressed ? RED : WHITE);
+                this.stamp(sprite, x, y);
             });
     }
 

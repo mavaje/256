@@ -5,7 +5,6 @@ import {Chunk} from "./png/chunk";
 import {ByteArray} from "../../common/byte-array";
 import {Colour, Triplet} from "../../common/colour";
 import {PNG} from "pngjs";
-import {Stopwatch} from "../../common/stopwatch";
 
 export type MappingMode = 'nearest' | 'random' | 'ordered';
 
@@ -32,15 +31,17 @@ export class PNGFile extends File {
         path?: string,
         extension?: string,
     ) {
+        const has_transparency = this.sprite.has_transparency();
+
         const chunks: Chunk[] = [];
-        const bit_depth = this.sprite.has_transparency() ? 8 : 4;
+        const bit_depth = has_transparency ? 8 : 4;
 
         chunks.push(Chunk.header(this.sprite.width, this.sprite.height, {
             bit_depth,
             colour_type: 3,
         }));
 
-        if (this.sprite.has_transparency()) {
+        if (has_transparency) {
             chunks.push(Chunk.palette([
                 ...this.palette.colours.map(c => c.rgb_bytes()),
                 [0, 0, 0],
@@ -117,17 +118,15 @@ export class PNGFile extends File {
         const png = PNG.sync.read(buffer);
         const pixels = new ByteArray(png.width * png.height);
 
-        // Stopwatch.time(() => {
-            for (let i = 0; i < png.data.length; i += 4) {
-                if (png.data[i + 3] < 128) {
-                    pixels[Math.floor(i / 4)] = TRANSPARENT;
-                } else {
-                    const rgb = [...png.data.subarray(i, i + 3)].map(v => v / 255);
-                    const colour = Colour.from_rgb(rgb);
-                    pixels[Math.floor(i / 4)] = this.palette.match(colour);
-                }
+        for (let i = 0; i < png.data.length; i += 4) {
+            if (png.data[i + 3] < 128) {
+                pixels[Math.floor(i / 4)] = TRANSPARENT;
+            } else {
+                const rgb = [...png.data.subarray(i, i + 3)].map(v => v / 255);
+                const colour = Colour.from_rgb(rgb);
+                pixels[Math.floor(i / 4)] = this.palette.match(colour);
             }
-        // }, `finding nearest colours for ${this.filename()}`);
+        }
 
         this.sprite = new Sprite(png.width, png.height, pixels);
 

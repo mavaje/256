@@ -20,14 +20,8 @@ export const PURPLE = 14;
 export const PINK = 15;
 export const TRANSPARENT = 16;
 
-export const MAX_COLOUR_ID = 15;
-
 export class Palette {
     constructor(public colours: Colour[]) {}
-
-    to_array() {
-        return this.colours.map(colour => colour.hex());
-    }
 
     get_colour(id: ColourID) {
         return this.colours[id];
@@ -47,73 +41,5 @@ export class Palette {
             }
         }
         return nearest;
-    }
-
-    black() {
-        return this.get_colour(BLACK);
-    }
-
-    white() {
-        return this.get_colour(WHITE);
-    }
-
-    grey() {
-        return this.get_colour(GREY);
-    }
-
-    silver() {
-        return this.get_colour(SILVER);
-    }
-
-    brown() {
-        return this.get_colour(BROWN);
-    }
-
-    gold() {
-        return this.get_colour(GOLD);
-    }
-
-    green() {
-        return this.get_colour(GREEN);
-    }
-
-    navy() {
-        return this.get_colour(NAVY);
-    }
-
-    red() {
-        return this.get_colour(RED);
-    }
-
-    orange() {
-        return this.get_colour(ORANGE);
-    }
-
-    yellow() {
-        return this.get_colour(YELLOW);
-    }
-
-    lime() {
-        return this.get_colour(LIME);
-    }
-
-    azure() {
-        return this.get_colour(AZURE);
-    }
-
-    blue() {
-        return this.get_colour(BLUE);
-    }
-
-    purple() {
-        return this.get_colour(PURPLE);
-    }
-
-    pink() {
-        return this.get_colour(PINK);
-    }
-
-    transparent() {
-        return null;
     }
 }
