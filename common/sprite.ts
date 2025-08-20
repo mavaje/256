@@ -1,4 +1,4 @@
-import {BLACK, ColourID, TRANSPARENT, WHITE} from "./palette";
+import {ColourID, ColourMap, TRANSPARENT, WHITE} from "./palette";
 import {ByteArray} from "./byte-array";
 
 export type StampOptions = {
@@ -6,6 +6,7 @@ export type StampOptions = {
     scale_x?: number;
     scale_y?: number;
     rotate?: number;
+    map?: ColourMap;
 };
 
 export class Sprite {
@@ -14,6 +15,7 @@ export class Sprite {
 
     protected previous_point: [number, number] = [0, 0];
 
+    base_colour: ColourID = TRANSPARENT;
     current_colour: ColourID = WHITE;
 
     constructor(
@@ -26,7 +28,7 @@ export class Sprite {
         if (pixels) {
             this.pixels.set(pixels);
         } else {
-            this.fill(TRANSPARENT);
+            this.clear();
         }
     }
 
@@ -38,6 +40,41 @@ export class Sprite {
 
     has_transparency() {
         return this.pixels.some(id => id === TRANSPARENT);
+    }
+
+    sub(x: number, y: number, width: number, height: number) {
+        const sprite = new Sprite(width, height);
+
+        if (x < 0) {
+            width += x;
+            x = 0;
+        }
+
+        if (y < 0) {
+            height += y;
+            y = 0;
+        }
+
+        if (x + width > this.width) {
+            width = this.width - x;
+        }
+
+        if (y + height > this.height) {
+            height = this.height - y;
+        }
+
+        for (let dy = 0; dy < height; dy++) {
+            if (y + dy < 0 || y + dy >= this.height) continue;
+            sprite.pixels.push(
+                this.pixels.slice(
+                    (y + dy) * this.width + x,
+                    (y + dy) * this.width + x + width,
+                ),
+                dy * sprite.width,
+            );
+        }
+
+        return sprite;
     }
 
     array_2d(column_major = false): number[][] {
@@ -65,23 +102,28 @@ export class Sprite {
     }
 
     has_pixel(x: number, y: number): boolean {
+        x = Math.round(x);
+        y = Math.round(y);
+
         return x >= 0 && x < this.width &&
             y >= 0 && y < this.height;
     }
 
     get_pixel(x: number, y: number): ColourID {
-        x = Math.floor(x);
-        y = Math.floor(y);
+        if (!this.has_pixel(x, y)) return this.base_colour;
+
+        x = Math.round(x);
+        y = Math.round(y);
 
         return this.pixels[y * this.height + x] as ColourID;
     }
 
     set_pixel(x: number, y: number, colour: ColourID = this.current_colour) {
-        x = Math.floor(x);
-        y = Math.floor(y);
-
         if (this.has_pixel(x, y) && this.is_valid_colour(colour)) {
-            this.pixels[y * this.height + x] = colour;
+            x = Math.round(x);
+            y = Math.round(y);
+
+            this.pixels[y * this.width + x] = colour;
         }
     }
 
@@ -92,7 +134,7 @@ export class Sprite {
     }
 
     clear() {
-        this.fill(this.supports_transparency ? TRANSPARENT : BLACK);
+        this.fill(this.base_colour);
     }
 
     fill_rect(
@@ -104,10 +146,10 @@ export class Sprite {
     ) {
         if (!this.is_valid_colour(colour)) return;
 
-        x = Math.floor(x);
-        y = Math.floor(y);
-        width = Math.floor(width);
-        height = Math.floor(height);
+        x = Math.round(x);
+        y = Math.round(y);
+        width = Math.round(width);
+        height = Math.round(height);
 
         if (x < 0) {
             width += x;
@@ -133,26 +175,44 @@ export class Sprite {
         }
     }
 
-    line(x1: number, y1: number, colour?: ColourID): void;
+    outline_rect(
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        colour: ColourID = this.current_colour,
+    ) {
+        if (width > 0 && height > 0) {
+            const x2 = x + width - 1;
+            const y2 = y + height - 1;
+
+            this.line(x, y, x2, y, colour);
+            this.line(x, y, x, y2, colour);
+            this.line(x, y2, x2, y2, colour);
+            this.line(x2, y, x2, y2, colour);
+        }
+    }
+
+    line(x2: number, y2: number, colour?: ColourID): void;
     line(x1: number, y1: number, x2: number, y2: number, colour?: ColourID): void;
     line(...args: number[]): void {
         let x1: number, y1: number, x2: number, y2: number, colour: number;
 
         if (args.length < 4) {
-            [x1, y1, colour = this.current_colour] = args;
-            [x2, y2] = this.previous_point;
+            [x1, y1] = this.previous_point;
+            [x2, y2, colour = this.current_colour] = args;
         } else {
             [x1, y1, x2, y2, colour = this.current_colour] = args;
         }
 
         if (!this.is_valid_colour(colour)) return;
 
-        this.previous_point = [x1, y1];
+        this.previous_point = [x2, y2];
 
-        x1 = Math.floor(x1);
-        y1 = Math.floor(y1);
-        x2 = Math.floor(x2);
-        y2 = Math.floor(y2);
+        x1 = Math.round(x1);
+        y1 = Math.round(y1);
+        x2 = Math.round(x2);
+        y2 = Math.round(y2);
 
         const dx = Math.abs(x2 - x1);
         const dy = Math.abs(y2 - y1);
@@ -178,38 +238,40 @@ export class Sprite {
         }
     }
 
-    stamp(sprite: Sprite, x: number = 0, y: number = 0, options: StampOptions = {}) {
-        x = Math.floor(x);
-        y = Math.floor(y);
+    stamp(sprite: Sprite, dx: number = 0, dy: number = 0, options: StampOptions = {}) {
         const {
             scale = 1,
             scale_x = scale,
             scale_y = scale,
             rotate = 0,
+            map = {},
         } = options;
 
-        const transparent = sprite.has_transparency();
+        const cx = scale_x * sprite.width / 2;
+        const cy = scale_y * sprite.height / 2;
 
-        const sx1 = Math.max(x, 0);
-        const sx2 = Math.min(x + sprite.width, 256);
-        if (sx1 < sx2) {
-            for (let sy = 0; sy < sprite.height; sy++) {
-                if (y + sy >= 0 && y + sy < 256) {
-                    const dx1 = sx1 - x;
-                    const dx2 = sx2 - x;
-                    const row = sprite.pixels.slice(
-                        sy * sprite.width + dx1,
-                        sy * sprite.width + dx2,
+        const sin = Math.sin(Math.PI * rotate / 180);
+        const cos = Math.cos(Math.PI * rotate / 180);
+
+        const edge_x = Math.ceil(Math.abs(cos * cx) + Math.abs(sin * cy)) + 0.5;
+        const edge_y = Math.ceil(Math.abs(sin * cx) + Math.abs(cos * cy)) + 0.5;
+
+        let id: ColourID;
+        for (let x = -edge_x; x < edge_x; x++) {
+            for (let y = -edge_y; y < edge_y; y++) {
+                id = sprite.get_pixel(
+                    (cx + cos * x - sin * y) / scale_x - 0.5,
+                    (cy + sin * x + cos * y) / scale_y - 0.5,
+                );
+
+                id = map[id] ?? id;
+
+                if (id < TRANSPARENT) {
+                    this.set_pixel(
+                        cx + dx + x - 0.5,
+                        cy + dy + y - 0.5,
+                        id,
                     );
-                    if (transparent) {
-                        row.forEach((id: ColourID, i) => {
-                            if (id < TRANSPARENT) {
-                                this.pixels[(y + sy) * this.width + sx1 + i] = id;
-                            }
-                        });
-                    } else {
-                        this.pixels.push(row, (y + sy) * this.width + sx1);
-                    }
                 }
             }
         }

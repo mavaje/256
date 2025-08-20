@@ -20,6 +20,10 @@ export const PURPLE = 14;
 export const PINK = 15;
 export const TRANSPARENT = 16;
 
+export type ColourMap = {
+    [id in ColourID]?: ColourID;
+};
+
 export class Palette {
     constructor(public colours: Colour[]) {}
 

@@ -2,7 +2,7 @@ export class ByteArray extends Uint8ClampedArray {
     private offset = 0;
 
     push(byte: number): this;
-    push(value: number, length?: number, offset?: number): this;
+    push(value: number, length: number, offset?: number): this;
     push(value: string, length?: number, offset?: number): this;
     push(value: ArrayLike<number>, offset?: number): this;
     push(
