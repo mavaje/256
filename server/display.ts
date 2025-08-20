@@ -1,4 +1,4 @@
-import {BLACK, ColourID} from "../common/palette";
+import {AZURE, BLACK, BLUE, ColourID, LIME, ORANGE, PINK, PURPLE, RED, YELLOW} from "../common/palette";
 import {Cursor} from "./cursor";
 import {EVT} from "./event-transmitter";
 import {ResourceProvider} from "./resource-provider";
@@ -34,23 +34,28 @@ export class Display extends View {
             child.render(this);
         });
 
-        // if (tick) return;
-
-        const sprite = this.resource_provide.sprite('neon');
-        const scale = 4;
-
-        this.stamp(
-            sprite,
-            128 - 8 * scale, 128 - 8 * scale,
-            {
-                scale,
-                scale_x: 1,
-                rotate: tick,
-            },
-        );
-
         Object.values(this.cursors)
             .forEach(({x, y, pressed}) => {
+                [
+                    RED,
+                    ORANGE,
+                    YELLOW,
+                    LIME,
+                    AZURE,
+                    BLUE,
+                    PURPLE,
+                    PINK,
+                ].forEach((colour: ColourID, i) => {
+                    const angle = i * Math.PI / 4 + tick / 8;
+                    this.fill_rect(
+                        x + 6 * Math.sin(angle) - 1,
+                        y + 6 * Math.cos(angle) - 1,
+                        2,
+                        2,
+                        colour,
+                    );
+                });
+
                 // this.stamp(
                 //     sprite,
                 //     0, 0,
