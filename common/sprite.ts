@@ -253,8 +253,8 @@ export class Sprite {
         const sin = Math.sin(Math.PI * rotate / 180);
         const cos = Math.cos(Math.PI * rotate / 180);
 
-        const edge_x = Math.ceil(Math.abs(cos * cx) + Math.abs(sin * cy)) + 0.5;
-        const edge_y = Math.ceil(Math.abs(sin * cx) + Math.abs(cos * cy)) + 0.5;
+        const edge_x = Math.ceil(Math.abs(cos * cx) + Math.abs(sin * cy)) + 0.5 - (cx % 1);
+        const edge_y = Math.ceil(Math.abs(sin * cx) + Math.abs(cos * cy)) + 0.5 - (cy % 1);
 
         let id: ColourID;
         for (let x = -edge_x; x < edge_x; x++) {

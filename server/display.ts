@@ -13,7 +13,7 @@ export class Display extends View {
         [client_id: string]: Cursor;
     } = {};
 
-    constructor(protected resource_provide: ResourceProvider) {
+    constructor(protected resource_provider: ResourceProvider) {
         super(0, 0, 256, 256);
         this.fill(BLACK);
 
@@ -55,16 +55,6 @@ export class Display extends View {
                         colour,
                     );
                 });
-
-                // this.stamp(
-                //     sprite,
-                //     0, 0,
-                //     {
-                //         // scale_x: 1/2,
-                //         // scale_y: 2,
-                //         rotate: tick,
-                //     },
-                // );
             });
     }
 
