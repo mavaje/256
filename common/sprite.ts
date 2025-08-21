@@ -42,16 +42,21 @@ export class Sprite {
         return this.pixels.some(id => id === TRANSPARENT);
     }
 
-    sub(x: number, y: number, width: number, height: number) {
+    sub(x: number, y: number, width: number, height: number): Sprite {
         const sprite = new Sprite(width, height);
+
+        let ox = 0;
+        let oy = 0;
 
         if (x < 0) {
             width += x;
+            ox = -x;
             x = 0;
         }
 
         if (y < 0) {
             height += y;
+            oy = -y;
             y = 0;
         }
 
@@ -70,8 +75,25 @@ export class Sprite {
                     (y + dy) * this.width + x,
                     (y + dy) * this.width + x + width,
                 ),
-                dy * sprite.width,
+                (dy + oy) * sprite.width + ox,
             );
+        }
+
+        return sprite;
+    }
+
+    scale(scale: number): Sprite;
+    scale(scale_x: number, scale_y: number): Sprite;
+    scale(scale_x: number, scale_y: number = scale_x): Sprite {
+        const width = Math.ceil(this.width * scale_x);
+        const height = Math.ceil(this.height * scale_y);
+
+        const sprite = new Sprite(width, height);
+
+        for (let x = 0; x < width; x++) {
+            for (let y = 0; y < height; y++) {
+                sprite.set_pixel(x, y, this.get_pixel(x / scale_x, y / scale_y));
+            }
         }
 
         return sprite;

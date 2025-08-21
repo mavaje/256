@@ -34,6 +34,9 @@ export class Display extends View {
             child.render(this);
         });
 
+        // const sprite = this.resource_provider.palette_file('neon').sprite;
+        // this.stamp(sprite.scale(0));
+
         Object.values(this.cursors)
             .forEach(({x, y, pressed}) => {
                 [
