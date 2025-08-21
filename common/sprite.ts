@@ -268,19 +268,13 @@ export class Sprite {
             scale_x = scale,
             scale_y = scale,
             rotate = 0,
+            cx = sprite.width * scale_x / 2,
+            cy = sprite.height * scale_y / 2,
             map = {},
         } = options;
 
         const d_width = sprite.width * scale_x;
         const d_height = sprite.height * scale_y;
-
-        let {
-            cx = d_width / 2,
-            cy = d_height / 2,
-        } = options;
-
-        cx -= 0.5;
-        cy -= 0.5;
 
         const sin = Math.sin(Math.PI * rotate / 180);
         const cos = Math.cos(Math.PI * rotate / 180);
@@ -302,12 +296,12 @@ export class Sprite {
         let id: ColourID;
         for (let x = Math.floor(min_x); x < max_x + 1; x++) {
             for (let y = Math.floor(min_y); y < max_y + 1; y++) {
-                const sx = x - cx;
-                const sy = y - cy;
+                const sx = x - cx + 0.5;
+                const sy = y - cy + 0.5;
 
                 id = sprite.get_pixel(
-                    (cx + cos * sx - sin * sy + 0.5) / scale_x - 0.5,
-                    (cy + sin * sx + cos * sy + 0.5) / scale_y - 0.5,
+                    (cx + cos * sx - sin * sy) / scale_x - 0.5,
+                    (cy + sin * sx + cos * sy) / scale_y - 0.5,
                 );
 
                 id = map[id] ?? id;

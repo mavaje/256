@@ -3,7 +3,7 @@ import {Cursor} from "./cursor";
 import {EVT} from "./event-transmitter";
 import {ResourceProvider} from "./resource-provider";
 import {View} from "./ui/view";
-import {StampOptions} from "../common/sprite";
+import {ByteArray} from "../common/byte-array";
 
 export class Display extends View {
     protected supports_transparency = false;
@@ -63,6 +63,13 @@ export class Display extends View {
     }
 
     buffer() {
-        return this.pixels.buffer;
+        const array = new ByteArray(Math.ceil(this.pixels.length / 2));
+
+        for (let i = 0; i < array.length; i++) {
+            array[i] = this.pixels[2 * i] << 4 & 0xf0
+                | this.pixels[2 * i + 1] & 0xf;
+        }
+
+        return array.buffer;
     }
 }
