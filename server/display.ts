@@ -3,6 +3,7 @@ import {Cursor} from "./cursor";
 import {EVT} from "./event-transmitter";
 import {ResourceProvider} from "./resource-provider";
 import {View} from "./ui/view";
+import {StampOptions} from "../common/sprite";
 
 export class Display extends View {
     protected supports_transparency = false;
@@ -34,11 +35,11 @@ export class Display extends View {
             child.render(this);
         });
 
-        // const sprite = this.resource_provider.palette_file('neon').sprite;
-        // this.stamp(sprite.scale(0));
+        const sprite = this.resource_provider.palette_file('neon').sprite;
 
         Object.values(this.cursors)
             .forEach(({x, y, pressed}) => {
+
                 [
                     RED,
                     ORANGE,

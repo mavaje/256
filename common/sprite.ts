@@ -1,4 +1,4 @@
-import {ColourID, ColourMap, TRANSPARENT, WHITE} from "./palette";
+import {ColourID, ColourMap, GREEN, TRANSPARENT, WHITE} from "./palette";
 import {ByteArray} from "./byte-array";
 
 export type StampOptions = {
@@ -6,6 +6,8 @@ export type StampOptions = {
     scale_x?: number;
     scale_y?: number;
     rotate?: number;
+    cx?: number;
+    cy?: number;
     map?: ColourMap;
 };
 
@@ -269,29 +271,51 @@ export class Sprite {
             map = {},
         } = options;
 
-        const cx = scale_x * sprite.width / 2;
-        const cy = scale_y * sprite.height / 2;
+        const d_width = sprite.width * scale_x;
+        const d_height = sprite.height * scale_y;
+
+        let {
+            cx = d_width / 2,
+            cy = d_height / 2,
+        } = options;
+
+        cx -= 0.5;
+        cy -= 0.5;
 
         const sin = Math.sin(Math.PI * rotate / 180);
         const cos = Math.cos(Math.PI * rotate / 180);
 
-        const edge_x = Math.ceil(Math.abs(cos * cx) + Math.abs(sin * cy)) + 0.5 - (cx % 1);
-        const edge_y = Math.ceil(Math.abs(sin * cx) + Math.abs(cos * cy)) + 0.5 - (cy % 1);
+        let [min_x,,, max_x] = [
+            cx - (cos * cx) - (sin * cy),
+            cx - (cos * cx) + (sin * (d_height - cy)),
+            cx + (cos * (d_width - cx)) - (sin * cy),
+            cx + (cos * (d_width - cx)) + (sin * (d_height - cy)),
+        ].sort((a, b) => a - b);
+
+        let [min_y,,, max_y] = [
+            cy + (sin * cx) - (cos * cy),
+            cy + (sin * cx) + (cos * (d_height - cy)),
+            cy - (sin * (d_width - cx)) - (cos * cy),
+            cy - (sin * (d_width - cx)) + (cos * (d_height - cy)),
+        ].sort((a, b) => a - b);
 
         let id: ColourID;
-        for (let x = -edge_x; x < edge_x; x++) {
-            for (let y = -edge_y; y < edge_y; y++) {
+        for (let x = Math.floor(min_x); x < max_x + 1; x++) {
+            for (let y = Math.floor(min_y); y < max_y + 1; y++) {
+                const sx = x - cx;
+                const sy = y - cy;
+
                 id = sprite.get_pixel(
-                    (cx + cos * x - sin * y) / scale_x - 0.5,
-                    (cy + sin * x + cos * y) / scale_y - 0.5,
+                    (cx + cos * sx - sin * sy + 0.5) / scale_x - 0.5,
+                    (cy + sin * sx + cos * sy + 0.5) / scale_y - 0.5,
                 );
 
                 id = map[id] ?? id;
 
                 if (id < TRANSPARENT) {
                     this.set_pixel(
-                        cx + dx + x - 0.5,
-                        cy + dy + y - 0.5,
+                        dx + x,
+                        dy + y,
                         id,
                     );
                 }
