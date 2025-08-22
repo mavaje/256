@@ -1,6 +1,6 @@
 import {File} from './file';
 import {Palette, TRANSPARENT} from "../../common/palette";
-import {Sprite} from "../../common/sprite";
+import {Sprite} from "../graphics/sprite";
 import {Chunk} from "./png/chunk";
 import {ByteArray} from "../../common/byte-array";
 import {Colour, Triplet} from "../../common/colour";

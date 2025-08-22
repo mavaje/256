@@ -1,27 +1,22 @@
 import {Server} from "./server";
-import {Display} from "./display";
+import {Display} from "./graphics/display";
 import {EventTransmitter} from "./event-transmitter";
 import {SpriteFile} from "./file/sprite-file";
-import {Palette} from "../common/palette";
-import {ResourceProvider} from "./resource-provider";
+import {Resources} from "./resources";
 
 export class Engine extends EventTransmitter {
     static FRAME_RATE = 30;
 
     running = false;
 
-    resource_provider = new ResourceProvider();
-
     server: Server = new Server();
-    display: Display = new Display(this.resource_provider);
-
-    palette: Palette = this.resource_provider.default_palette;
+    display: Display = new Display();
 
     constructor() {
         super();
 
         this.on('client-joined', client => {
-            client.send_palette(this.palette);
+            client.send_palette(Resources.palette());
         });
     }
 
@@ -51,7 +46,7 @@ export class Engine extends EventTransmitter {
     screenshot() {
         SpriteFile.save(
             this.display,
-            this.palette,
+            Resources.palette(),
             `screenshot_${new Date().toISOString()}`,
             'resources/screenshots',
         );

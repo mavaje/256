@@ -1,7 +1,7 @@
 import {Socket} from "socket.io";
 import {EventDown, EventUp} from "../common/event";
 import {Server} from "./server";
-import {Display} from "./display";
+import {Display} from "./graphics/display";
 import {Palette} from "../common/palette";
 import { EVT } from "./event-transmitter";
 

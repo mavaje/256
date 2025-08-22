@@ -1,5 +1,5 @@
-import {Sprite} from "../../common/sprite";
-import {Client} from "../client";
+import {Sprite} from "../sprite";
+import {Client} from "../../client";
 
 export class View extends Sprite {
 

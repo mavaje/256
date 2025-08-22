@@ -1,11 +1,16 @@
-export type Triplet = [number, number, number];
+export type Triplet<F extends string = never> = [number, number, number] & {
+    [K in F]?: number;
+};
+
+export type RGB = Triplet<'r' | 'g' | 'b'>;
+export type LAB = Triplet<'L' | 'a' | 'b'>;
 
 export type ColourSpace = 'rgb' | 'oklab';
 
 export class Colour {
     _hex: string;
-    _rgb: Triplet;
-    _oklab: Triplet;
+    _rgb: RGB;
+    _oklab: LAB;
 
     private constructor(private readonly space: ColourSpace) {}
 
@@ -23,19 +28,13 @@ export class Colour {
 
     static from_rgb(rgb: ArrayLike<number>) {
         const colour = new Colour('rgb');
-        colour._rgb = [0, 0, 0];
-        colour._rgb[0] = rgb[0];
-        colour._rgb[1] = rgb[1];
-        colour._rgb[2] = rgb[2];
+        colour.set_rgb(...rgb as [number, number, number]);
         return colour;
     }
 
-    static from_oklab(oklab: ArrayLike<number>) {
+    static from_oklab(lab: ArrayLike<number>) {
         const colour = new Colour('oklab');
-        colour._oklab = [0, 0, 0];
-        colour._oklab[0] = oklab[0];
-        colour._oklab[1] = oklab[1];
-        colour._oklab[2] = oklab[2];
+        colour.set_oklab(...lab as [number, number, number]);
         return colour;
     }
 
@@ -53,26 +52,41 @@ export class Colour {
         return Colour.from_rgb(rgb);
     }
 
-    rgb(): Triplet {
-        if (this._rgb) return this._rgb;
+    protected set_rgb(r: number, g: number, b: number) {
+        this._rgb = [0, 0, 0];
+        this._rgb.r = this._rgb[0] = r;
+        this._rgb.g = this._rgb[1] = g;
+        this._rgb.b = this._rgb[2] = b;
+    }
 
-        switch (this.space) {
-            case 'rgb':
-                return this._rgb;
+    protected set_oklab(l: number, a: number, b: number) {
+        this._oklab = [0, 0, 0];
+        this._oklab.L = this._oklab[0] = l;
+        this._oklab.a = this._oklab[1] = a;
+        this._oklab.b = this._oklab[2] = b;
+    }
 
-            case 'oklab':
-                const [L, a, b] = this._oklab;
+    rgb(): RGB {
+        if (!this._rgb) {
+            switch (this.space) {
+                case 'oklab':
+                    const [L, a, b] = this._oklab;
 
-                let l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
-                let m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
-                let s = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3;
+                    let l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+                    let m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+                    let s = (L - 0.0894841775 * a - 1.2914855480 * b) ** 3;
 
-                return this._rgb = [
-                    Colour.from_linear(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
-                    Colour.from_linear(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
-                    Colour.from_linear(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s),
-                ];
+                    this.set_rgb(
+                        Colour.from_linear(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s),
+                        Colour.from_linear(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s),
+                        Colour.from_linear(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s),
+                    );
+
+                    break;
+            }
         }
+
+        return this._rgb;
     }
 
     linear_rgb(): Triplet {
@@ -81,7 +95,7 @@ export class Colour {
 
     rgb_bytes(): Triplet {
         return this.rgb()
-            .map(v => Math.round(v * 255)) as Triplet;
+            .map(v => Math.min(Math.floor(v * 256), 255)) as Triplet;
     }
 
     hex(): string {
@@ -91,35 +105,48 @@ export class Colour {
             .join('');
     }
 
-    oklab(): Triplet {
+    oklab(): LAB {
+        if (!this._oklab) {
+            switch (this.space) {
+                case 'rgb':
+                    let [r, g, b] = this.linear_rgb();
+
+                    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+                    const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+                    const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+
+                    this.set_oklab(
+                        0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+                        1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+                        0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s
+                    );
+
+                    break;
+            }
+
+            return this._oklab;
+        }
+
         if (this._oklab) return this._oklab;
 
-        switch (this.space) {
+    }
+
+    in_space(space: ColourSpace): Triplet {
+        switch (space) {
             case 'rgb':
-                let [r, g, b] = this.linear_rgb();
-
-                const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
-                const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
-                const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
-
-                return this._oklab = [
-                    0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
-                    1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
-                    0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s
-                ];
-
+                return this.rgb();
             case 'oklab':
-                return this._oklab;
+                return this.oklab();
         }
     }
 
-    distance(colour: Colour) {
-        const [l1, a1, b1] = this.oklab();
-        const [l2, a2, b2] = colour.oklab();
+    distance(colour: Colour, space: ColourSpace = 'oklab') {
+        const [a1, b1, c1] = this.in_space(space);
+        const [a2, b2, c2] = colour.in_space(space);
         return Math.sqrt(
-            (l1 - l2) ** 2
-            + (a1 - a2) ** 2
+            (a1 - a2) ** 2
             + (b1 - b2) ** 2
+            + (c1 - c2) ** 2
         );
     }
 }

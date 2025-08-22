@@ -1,6 +1,6 @@
 import {Palette} from "../../common/palette";
 import {PNGFile} from "./png-file";
-import {Sprite} from "../../common/sprite";
+import {Sprite} from "../graphics/sprite";
 
 export class SpriteFile extends PNGFile {
     static PATH = 'resources/sprites';

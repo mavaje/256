@@ -25,7 +25,57 @@ export type ColourMap = {
 };
 
 export class Palette {
-    constructor(public colours: Colour[]) {}
+
+    public contrast: ColourMap;
+    public darken: ColourMap;
+    public lighten: ColourMap;
+
+    constructor(public colours: Colour[]) {
+        this.contrast = {};
+        this.darken = {};
+        this.lighten = {};
+        colours.forEach((colour, id: ColourID) => {
+            const [l, a, b] = colour.oklab();
+
+            let contrast: [ColourID, number] = [id, 0];
+            let darken: [ColourID, number] = [id, Infinity];
+            let lighten: [ColourID, number] = [id, Infinity];
+
+            colours.forEach((c, i: ColourID) => {
+                const [l2, a2, b2] = c.oklab();
+                const dl = Math.abs(l - l2);
+                const da = Math.abs(a - a2);
+                const db = Math.abs(b - b2);
+
+                if (dl > contrast[1]) {
+                    contrast = [i, dl];
+                }
+
+                if (l2 < l) {
+                    const score =
+                        dl ** 2
+                        + 32 * da ** 2
+                        + 16 * db ** 2;
+
+                    if (score < darken[1]) {
+                        darken = [i, score];
+                    }
+                } else if (l2 > l) {
+                    const score =
+                        dl ** 2
+                        + 16 * da ** 2
+                        + 24 * db ** 2;
+
+                    if (score < lighten[1]) {
+                        lighten = [i, score];
+                    }
+                }
+            });
+            this.contrast[id] = contrast[0];
+            this.darken[id] = darken[0];
+            this.lighten[id] = lighten[0];
+        });
+    }
 
     get_colour(id: ColourID) {
         return this.colours[id];

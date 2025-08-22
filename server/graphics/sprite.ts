@@ -1,5 +1,6 @@
-import {ColourID, ColourMap, GREEN, TRANSPARENT, WHITE} from "./palette";
-import {ByteArray} from "./byte-array";
+import {ColourID, ColourMap, RED, TRANSPARENT, WHITE} from "../../common/palette";
+import {ByteArray} from "../../common/byte-array";
+import {Resources} from "../resources";
 
 export type StampOptions = {
     scale?: number;
@@ -11,6 +12,10 @@ export type StampOptions = {
     map?: ColourMap;
 };
 
+export type PrintOptions = {
+    font?: string;
+};
+
 export class Sprite {
     protected pixels: ByteArray;
     protected supports_transparency = true;
@@ -19,11 +24,12 @@ export class Sprite {
 
     base_colour: ColourID = TRANSPARENT;
     current_colour: ColourID = WHITE;
+    font: string = Resources.DEFAULT_FONT_NAME;
 
     constructor(
         public width: number,
         public height: number,
-        pixels: ArrayLike<number> = null,
+        pixels?: ArrayLike<number>,
     ) {
         this.pixels = new ByteArray(width * height);
 
@@ -70,8 +76,8 @@ export class Sprite {
             height = this.height - y;
         }
 
-        for (let dy = 0; dy < height; dy++) {
-            if (y + dy < 0 || y + dy >= this.height) continue;
+        for (let dy = Math.max(0, y); dy < height; dy++) {
+            if (y + dy >= this.height) break;
             sprite.pixels.push(
                 this.pixels.slice(
                     (y + dy) * this.width + x,
@@ -139,7 +145,7 @@ export class Sprite {
         x = Math.round(x);
         y = Math.round(y);
 
-        return this.pixels[y * this.height + x] as ColourID;
+        return this.pixels[y * this.width + x] as ColourID;
     }
 
     set_pixel(x: number, y: number, colour: ColourID = this.current_colour) {
@@ -312,6 +318,30 @@ export class Sprite {
                         dy + y,
                         id,
                     );
+                }
+            }
+        }
+    }
+
+    print(text: string, x: number, y: number, options: PrintOptions = {}) {
+        const {
+            font = this.font,
+        } = options;
+        let offset_x = x;
+        let offset_y = y + 1;
+        for (let i = 0; i < text.length; i++) {
+            const code = text.charCodeAt(i);
+            if (code === 0x0a) {
+                offset_x = x;
+                offset_y += 10;
+            } else {
+                const glyph = Resources.font(font)?.glyphs[code];
+                if (glyph) {
+                    this.stamp(glyph, offset_x, offset_y - glyph.baseline);
+                    offset_x += glyph.width + 1;
+                } else {
+                    this.fill_rect(offset_x, offset_y - 7, 5, 7, RED);
+                    offset_x += 6;
                 }
             }
         }

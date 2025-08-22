@@ -4,7 +4,7 @@ import http from 'http';
 import {Server as SocketIO} from 'socket.io';
 import {Client} from "./client";
 import {EventDown, EventUp} from "../common/event";
-import {Display} from "./display";
+import {Display} from "./graphics/display";
 import {Palette} from "../common/palette";
 
 export class Server {

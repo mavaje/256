@@ -1,5 +1,5 @@
-import {Client} from "./client";
-import {EventTransmitter} from "./event-transmitter";
+import {Client} from "../client";
+import {EventTransmitter} from "../event-transmitter";
 
 export class Cursor extends EventTransmitter {
     x: number = 128;

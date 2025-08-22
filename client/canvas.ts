@@ -11,6 +11,16 @@ export class Canvas {
     constructor() {
         this.context = Canvas.ELEMENT.getContext('2d');
         this.context.imageSmoothingEnabled = false;
+
+        window.addEventListener('resize', () => this.resize_to_fit());
+
+        this.resize_to_fit();
+    }
+
+    resize_to_fit() {
+        const scale = Math.floor(Math.min(window.innerWidth, window.innerHeight) / 256) * 256;
+        Canvas.ELEMENT.style.width = `${scale}px`;
+        Canvas.ELEMENT.style.height = `${scale}px`;
     }
 
     update(buffer: ArrayBuffer) {
