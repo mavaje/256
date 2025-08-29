@@ -3,8 +3,9 @@ import {Palette, TRANSPARENT} from "../../common/palette";
 import {Sprite} from "../graphics/sprite";
 import {Chunk} from "./png/chunk";
 import {ByteArray} from "../../common/byte-array";
-import {Colour, Triplet} from "../../common/colour";
+import {Colour} from "../../common/colour/colour";
 import {PNG} from "pngjs";
+import {RGBColour} from "../../common/colour/rgb";
 
 export type MappingMode = 'nearest' | 'random' | 'ordered';
 
@@ -97,16 +98,7 @@ export class PNGFile extends File {
 
             // console.log(`found chunk ${chunk.type}:`, chunk.data);
 
-            if (!this.palette && chunk.is_palette() && chunk.data.length === 48) {
-                const colours: Colour[] = [];
-                for (let i = 0; i < chunk.data.length; i += 3) {
-                    colours.push(Colour.from_rgb(chunk.data
-                        .slice(i, i + 3)
-                        .array()
-                        .map(v => v / 255) as Triplet))
-                }
-                this.palette = new Palette(colours);
-            }
+            this.load_chunk(chunk);
 
             index += chunk.length;
         }
@@ -123,7 +115,7 @@ export class PNGFile extends File {
                 pixels[Math.floor(i / 4)] = TRANSPARENT;
             } else {
                 const rgb = [...png.data.subarray(i, i + 3)].map(v => v / 255);
-                const colour = Colour.from_rgb(rgb);
+                const colour = RGBColour.from(rgb);
                 pixels[Math.floor(i / 4)] = this.palette.match(colour);
             }
         }
@@ -131,5 +123,17 @@ export class PNGFile extends File {
         this.sprite = new Sprite(png.width, png.height, pixels);
 
         return this;
+    }
+
+    protected load_chunk(chunk: Chunk) {
+        if (!this.palette && chunk.is_palette() && chunk.data.length === 48) {
+            const colours: Colour[] = [];
+            for (let i = 0; i < chunk.data.length; i += 3) {
+                const rgb = chunk.data.slice(i, i + 3);
+                const colour = RGBColour.from_bytes(rgb);
+                colours.push(colour);
+            }
+            this.palette = new Palette(colours);
+        }
     }
 }

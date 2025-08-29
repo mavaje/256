@@ -1,4 +1,4 @@
-import {Colour} from "./colour";
+import {Colour} from "./colour/colour";
 
 export type ColourID = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16;
 
@@ -35,40 +35,46 @@ export class Palette {
         this.darken = {};
         this.lighten = {};
         colours.forEach((colour, id: ColourID) => {
-            const [l, a, b] = colour.oklab();
+            const [l, c, h] = colour.oklch();
 
             let contrast: [ColourID, number] = [id, 0];
             let darken: [ColourID, number] = [id, Infinity];
             let lighten: [ColourID, number] = [id, Infinity];
 
-            colours.forEach((c, i: ColourID) => {
-                const [l2, a2, b2] = c.oklab();
+            colours.forEach((colour_2, id_2: ColourID) => {
+                const [l2, c2, h2] = colour_2.oklch();
                 const dl = Math.abs(l - l2);
-                const da = Math.abs(a - a2);
-                const db = Math.abs(b - b2);
+                const dc = Math.abs(c - c2);
+                let dh = Math.abs(h - h2) % (2 * Math.PI);
+                if (dh > Math.PI) dh = 2 * Math.PI - dh;
 
                 if (dl > contrast[1]) {
-                    contrast = [i, dl];
+                    contrast = [id_2, dl];
                 }
 
                 if (l2 < l) {
+                    // const score =
+                    //     dl ** 2
+                    //     + 16 * dc ** 2
+                    //     + 4 * c * c2 * dh ** 2;
+
                     const score =
                         dl ** 2
-                        + 32 * da ** 2
-                        + 16 * db ** 2;
+                        + 4 * dc ** 2
+                        + 2 * (c * c2) * dh ** 2;
 
                     if (score < darken[1]) {
-                        darken = [i, score];
+                        darken = [id_2, score];
                     }
                 } else if (l2 > l) {
-                    const score =
-                        dl ** 2
-                        + 16 * da ** 2
-                        + 24 * db ** 2;
-
-                    if (score < lighten[1]) {
-                        lighten = [i, score];
-                    }
+                    // const score =
+                    //     dl ** 2
+                    //     + 1 * dc ** 2
+                    //     + 1 * dh ** 2;
+                    //
+                    // if (score < lighten[1]) {
+                    //     lighten = [id_2, score];
+                    // }
                 }
             });
             this.contrast[id] = contrast[0];

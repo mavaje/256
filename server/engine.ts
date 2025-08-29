@@ -4,7 +4,7 @@ import {EventTransmitter} from "./event-transmitter";
 import {SpriteFile} from "./file/sprite-file";
 import {Resources} from "./resources";
 
-export class Engine extends EventTransmitter {
+export class Engine {
     static FRAME_RATE = 30;
 
     running = false;
@@ -12,10 +12,10 @@ export class Engine extends EventTransmitter {
     server: Server = new Server();
     display: Display = new Display();
 
-    constructor() {
-        super();
+    et = new EventTransmitter();
 
-        this.on('client-joined', client => {
+    constructor() {
+        this.et.on('client-joined', client => {
             client.send_palette(Resources.palette());
         });
     }

@@ -26,24 +26,33 @@ export class View extends Sprite {
     }
 
     on_hover(listener: (x: number, y: number, client: Client) => void) {
+        for (const child of this.children) {
 
+        }
     }
 
-    render(sprite: Sprite): void {
-
+    render(
+        sprite: Sprite,
+        parent_x: number,
+        parent_y: number,
+    ) {
         this.children.forEach(child => {
-            child.render(this);
+            child.render(
+                sprite,
+                parent_x + this.x,
+                parent_y + this.y,
+            );
         });
 
-        sprite.stamp(this, this.x, this.y);
-    }
-}
+        if (sprite !== this) {
+            sprite?.stamp(
+                this,
+                parent_x + this.x,
+                parent_y + this.y,
+            );
+        }
 
-export function view(
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-): View {
-    return new View(x, y, width, height);
+        this.previous_point = [0, 0];
+        this.previous_print = [1, 1];
+    }
 }

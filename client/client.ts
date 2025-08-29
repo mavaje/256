@@ -2,9 +2,9 @@ import {EventDown, EventUp} from "../common/event";
 import {io, Socket} from "socket.io-client";
 import {Canvas} from "./canvas";
 import {Palette} from "../common/palette";
-import {Colour} from "../common/colour";
 import {Keyboard} from "./keyboard";
 import {Cursor} from "./cursor";
+import {RGBColour} from "../common/colour/rgb";
 
 export class Client {
     static COOKIE_ID_KEY = 'player_id';
@@ -39,7 +39,7 @@ export class Client {
             this.socket.emit('client-id', this.id);
 
             this.socket.on('palette', palette => {
-                this.canvas.palette = new Palette(palette.map(Colour.from_hex));
+                this.canvas.palette = new Palette(palette.map(RGBColour.from_hex));
             });
 
             this.socket.on('display', buffer => {

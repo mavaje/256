@@ -4,20 +4,23 @@ import {
     BLUE, BROWN,
     ColourID, GOLD, GREEN, GREY,
     LIME, NAVY,
-    ORANGE,
+    ORANGE, Palette,
     PINK,
     PURPLE,
     RED,
-    SILVER,
+    SILVER, TRANSPARENT,
     WHITE,
     YELLOW
 } from "../../common/palette";
 import {Cursor} from "./cursor";
 import {EVT} from "../event-transmitter";
-import {Resources} from "../resources";
 import {View} from "./ui/view";
 import {ByteArray} from "../../common/byte-array";
 import {Sprite} from "./sprite";
+import {PNGFile} from "../file/png-file";
+import {FontFile} from "../file/font-file";
+import {Resources} from "../resources";
+import {SpriteFile} from "../file/sprite-file";
 
 export class Display extends View {
     protected supports_transparency = false;
@@ -46,73 +49,12 @@ export class Display extends View {
         this.clear();
         // if (tick) return;
 
-        const palette = Resources.palette();
-
-        this.children.forEach(child => {
-            child.render(this);
-        });
-
-        // const sprite = this.resource_provider.palette_file('neon').sprite;
-
-        this.print(
-            [
-                ' !"#$%&\'()*+,-./',
-                '0123456789:;<=>?',
-                '@ABCDEFGHIJKLMNO',
-                'PQRSTUVWXYZ[\\]^_',
-                '`abcdefghijklmno',
-                'pqrstuvwxyz{|}~'
-            ].join('\n'),
-            1, 9,
-        );
-
-        for (let id = 0; id < 16; id++) {
-            this.fill_rect(8 * id, 64, 8, 28, id as ColourID);
-            this.outline_rect(8 * id + 2, 66, 4, 4, palette.contrast[id] as ColourID);
-
-            this.fill_rect(8 * id, 72, 8, 4, palette.darken[id] as ColourID);
-            // this.fill_rect(8 * id + 2, 76, 4, 4, ({
-            //     [BLACK]: BLACK,
-            //     [WHITE]: SILVER,
-            //     [GREY]: BLACK,
-            //     [SILVER]: GREY,
-            //     [BROWN]: BLACK,
-            //     [GOLD]: BROWN,
-            //     [GREEN]: NAVY,
-            //     [NAVY]: BLACK,
-            //     [RED]: BROWN,
-            //     [ORANGE]: BROWN,
-            //     [YELLOW]: GOLD,
-            //     [LIME]: GREEN,
-            //     [AZURE]: BLUE,
-            //     [BLUE]: NAVY,
-            //     [PURPLE]: NAVY,
-            //     [PINK]: PURPLE,
-            // }[id] ?? id) as ColourID);
-
-            this.fill_rect(8 * id, 82, 8, 4, palette.lighten[id] as ColourID);
-            // this.fill_rect(8 * id + 2, 86, 4, 4, ({
-            //     [BLACK]: GREY,
-            //     [WHITE]: WHITE,
-            //     [GREY]: SILVER,
-            //     [SILVER]: WHITE,
-            //     [BROWN]: GOLD,
-            //     [GOLD]: WHITE,
-            //     [GREEN]: LIME,
-            //     [NAVY]: BLUE,
-            //     [RED]: PINK,
-            //     [ORANGE]: YELLOW,
-            //     [YELLOW]: WHITE,
-            //     [LIME]: WHITE,
-            //     [AZURE]: WHITE,
-            //     [BLUE]: AZURE,
-            //     [PURPLE]: PINK,
-            //     [PINK]: WHITE,
-            // }[id] ?? id) as ColourID);
-        }
+        this.render();
 
         Object.values(this.cursors)
             .forEach(({x, y, pressed}) => {
+
+
                 [
                     RED,
                     ORANGE,
@@ -133,6 +75,10 @@ export class Display extends View {
                     );
                 });
             });
+    }
+
+    render() {
+        super.render(this, 0, 0);
     }
 
     buffer() {

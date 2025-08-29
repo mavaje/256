@@ -1,4 +1,4 @@
-import {ColourID, ColourMap, RED, TRANSPARENT, WHITE} from "../../common/palette";
+import {ColourID, ColourMap, TRANSPARENT, WHITE} from "../../common/palette";
 import {ByteArray} from "../../common/byte-array";
 import {Resources} from "../resources";
 
@@ -10,17 +10,23 @@ export type StampOptions = {
     cx?: number;
     cy?: number;
     map?: ColourMap;
+    smooth?: boolean;
 };
 
 export type PrintOptions = {
     font?: string;
+    colour?: ColourID;
+    scale_x?: number;
+    scale_y?: number;
+    scale?: number;
+    rotate?: number;
+    cx?: number;
+    cy?: number;
 };
 
 export class Sprite {
     protected pixels: ByteArray;
     protected supports_transparency = true;
-
-    protected previous_point: [number, number] = [0, 0];
 
     base_colour: ColourID = TRANSPARENT;
     current_colour: ColourID = WHITE;
@@ -29,12 +35,12 @@ export class Sprite {
     constructor(
         public width: number,
         public height: number,
-        pixels?: ArrayLike<number>,
+        source?: ArrayLike<number>,
     ) {
         this.pixels = new ByteArray(width * height);
 
-        if (pixels) {
-            this.pixels.set(pixels);
+        if (source) {
+            this.pixels.set(source);
         } else {
             this.clear();
         }
@@ -76,7 +82,7 @@ export class Sprite {
             height = this.height - y;
         }
 
-        for (let dy = Math.max(0, y); dy < height; dy++) {
+        for (let dy = 0; dy < height; dy++) {
             if (y + dy >= this.height) break;
             sprite.pixels.push(
                 this.pixels.slice(
@@ -139,13 +145,54 @@ export class Sprite {
             y >= 0 && y < this.height;
     }
 
-    get_pixel(x: number, y: number): ColourID {
-        if (!this.has_pixel(x, y)) return this.base_colour;
+    get_pixel(x: number, y: number, smooth: boolean = false): ColourID {
+        if (smooth) {
 
-        x = Math.round(x);
-        y = Math.round(y);
+            const local_x = Math.round(x);
+            const local_y = Math.round(y);
 
-        return this.pixels[y * this.width + x] as ColourID;
+            const dir_x = Math.sign(x - local_x);
+            const dir_y = Math.sign(y - local_y);
+
+            const dx = Math.abs(x - local_x);
+            const dy = Math.abs(y - local_y);
+
+            const x_major = Math.abs(x - local_x) > Math.abs(y - local_y);
+
+            const d_major = x_major ? dx : dy;
+            const d_minor = x_major ? dy : dx;
+
+            const pixel = (major: number, minor: number): ColourID => x_major
+                ? this.get_pixel(
+                    local_x + major * dir_x,
+                    local_y + minor * dir_y,
+                )
+                : this.get_pixel(
+                    local_x + minor * dir_x,
+                    local_y + major * dir_y,
+                );
+
+            const pixel_0_0 = pixel(0, 0);
+            const pixel_0_1 = pixel(0, 1);
+            const pixel_1_0 = pixel(1, 0);
+            const pixel_1_1 = pixel(1, 1);
+
+            const local_line = pixel_0_0 === pixel_1_1 && pixel_0_0 < TRANSPARENT;
+
+            const cross_line = pixel_0_1 === pixel_1_0;
+
+            return !local_line && cross_line && (dx + dy > 0.5)
+                ? pixel_0_1
+                : pixel_0_0;
+
+        } else {
+            if (!this.has_pixel(x, y)) return this.base_colour;
+
+            x = Math.round(x);
+            y = Math.round(y);
+
+            return this.pixels[y * this.width + x] as ColourID;
+        }
     }
 
     set_pixel(x: number, y: number, colour: ColourID = this.current_colour) {
@@ -223,6 +270,7 @@ export class Sprite {
         }
     }
 
+    protected previous_point: [number, number] = [0, 0];
     line(x2: number, y2: number, colour?: ColourID): void;
     line(x1: number, y1: number, x2: number, y2: number, colour?: ColourID): void;
     line(...args: number[]): void {
@@ -277,6 +325,7 @@ export class Sprite {
             cx = sprite.width * scale_x / 2,
             cy = sprite.height * scale_y / 2,
             map = {},
+            smooth = true,
         } = options;
 
         const d_width = sprite.width * scale_x;
@@ -308,6 +357,7 @@ export class Sprite {
                 id = sprite.get_pixel(
                     (cx + cos * sx - sin * sy) / scale_x - 0.5,
                     (cy + sin * sx + cos * sy) / scale_y - 0.5,
+                    smooth,
                 );
 
                 id = map[id] ?? id;
@@ -323,27 +373,72 @@ export class Sprite {
         }
     }
 
-    print(text: string, x: number, y: number, options: PrintOptions = {}) {
+    print_line(text: string, options?: PrintOptions): void;
+    print_line(text: string, x: number, y: number, options?: PrintOptions): void;
+    print_line(text: string, ...rest: any[]): void {
+        this.print(text + '\n', ...rest);
+    }
+
+
+    protected previous_print: [number, number] = [1, 1];
+    print(text: string, options?: PrintOptions): void;
+    print(text: string, x: number, y: number, options?: PrintOptions): void;
+    print(text: string, ...rest: any[]): void {
+        let [x, y] = this.previous_print;
+        let options: PrintOptions;
+        switch (typeof rest[0]) {
+            case 'object':
+                [options] = rest;
+                break;
+            case 'number':
+                [x, y, options] = rest;
+                break;
+        }
+
         const {
-            font = this.font,
-        } = options;
+            font: font_name = this.font,
+            colour = this.current_colour,
+            scale = 1,
+            scale_x = scale,
+            scale_y = scale,
+            // rotate = 0,
+            // cx = sprite.width * scale_x / 2,
+            // cy = sprite.height * scale_y / 2,
+        } = options ?? {};
+
         let offset_x = x;
-        let offset_y = y + 1;
+        let offset_y = y;
+        const font = Resources.font(font_name);
+
+        if (!font) {
+            throw new Error(`Font not found! ${font_name}`);
+        }
+
         for (let i = 0; i < text.length; i++) {
             const code = text.charCodeAt(i);
             if (code === 0x0a) {
                 offset_x = x;
-                offset_y += 10;
+                offset_y += (font.height + 1) * scale_y;
             } else {
-                const glyph = Resources.font(font)?.glyphs[code];
+                const glyph = font.glyph(code);
                 if (glyph) {
-                    this.stamp(glyph, offset_x, offset_y - glyph.baseline);
-                    offset_x += glyph.width + 1;
-                } else {
-                    this.fill_rect(offset_x, offset_y - 7, 5, 7, RED);
-                    offset_x += 6;
+                    this.stamp(
+                        glyph,
+                        offset_x - scale_x,
+                        offset_y - scale_y,
+                        {
+                            scale_x,
+                            scale_y,
+                            map: {
+                                [WHITE]: colour,
+                            },
+                        },
+                    );
+                    offset_x += (glyph.width - 1) * scale_x;
                 }
             }
         }
+
+        this.previous_print = [offset_x, offset_y];
     }
 }

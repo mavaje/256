@@ -1,7 +1,7 @@
 import crc32 from "crc-32";
 import {ByteArray} from "../../../common/byte-array";
 import zlib from "zlib";
-import {Triplet} from "../../../common/colour";
+import {Triplet} from "../../../common/colour/colour";
 
 type HeaderOptions = {
     bit_depth?: 1 | 2 | 4 | 8 | 16;
