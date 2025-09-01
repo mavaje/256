@@ -108,19 +108,17 @@ export class PNGFile extends File {
         }
 
         const png = PNG.sync.read(buffer);
-        const pixels = new ByteArray(png.width * png.height);
+        this.sprite = new Sprite(png.width, png.height);
 
         for (let i = 0; i < png.data.length; i += 4) {
             if (png.data[i + 3] < 128) {
-                pixels[Math.floor(i / 4)] = TRANSPARENT;
+                this.sprite.set_index(i / 4, TRANSPARENT);
             } else {
                 const rgb = [...png.data.subarray(i, i + 3)].map(v => v / 255);
                 const colour = RGBColour.from(rgb);
-                pixels[Math.floor(i / 4)] = this.palette.match(colour);
+                this.sprite.set_index(i / 4, this.palette.match(colour));
             }
         }
-
-        this.sprite = new Sprite(png.width, png.height, pixels);
 
         return this;
     }

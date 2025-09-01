@@ -1,17 +1,21 @@
-import {Sprite} from "./sprite";
+import {Glyph} from "./glyph";
 
 export type GlyphMap = {
-    [code: number]: Sprite;
+    [code: number]: Glyph;
 };
 
 export class Font {
 
     constructor(
         public height: number,
-        protected glyphs: GlyphMap,
+        protected glyphs: GlyphMap = {},
     ) {}
 
-    glyph(code: number): Sprite {
+    set_glyph(code: number, glyph: Glyph) {
+        this.glyphs[code] = glyph;
+    }
+
+    glyph(code: number): Glyph {
         return this.glyphs[code];
     }
 }

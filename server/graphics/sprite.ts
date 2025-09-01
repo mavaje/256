@@ -15,13 +15,15 @@ export type StampOptions = {
 
 export type PrintOptions = {
     font?: string;
-    colour?: ColourID;
     scale_x?: number;
     scale_y?: number;
     scale?: number;
     rotate?: number;
     cx?: number;
     cy?: number;
+    colour?: ColourID;
+    map?: ColourMap;
+    smooth?: boolean;
 };
 
 export class Sprite {
@@ -54,6 +56,25 @@ export class Sprite {
 
     has_transparency() {
         return this.pixels.some(id => id === TRANSPARENT);
+    }
+
+    replace(a: ColourID, b: ColourID): void;
+    replace(map: ColourMap): void;
+    replace(...args: any[]) {
+        let map: ColourMap;
+        switch (typeof args[0])
+        {
+            case 'number':
+                const [a, b] = args;
+                map = {[a]: b};
+                break;
+            default:
+                [map = {}] = args;
+        }
+
+        this.pixels.forEach((colour, index) => {
+            this.pixels[index] = map[colour] ?? colour;
+        });
     }
 
     sub(x: number, y: number, width: number, height: number): Sprite {
@@ -137,6 +158,10 @@ export class Sprite {
         return array;
     }
 
+    set_index(i: number, colour: ColourID) {
+        this.pixels[Math.floor(i)] = colour;
+    }
+
     has_pixel(x: number, y: number): boolean {
         x = Math.round(x);
         y = Math.round(y);
@@ -214,62 +239,6 @@ export class Sprite {
         this.fill(this.base_colour);
     }
 
-    fill_rect(
-        x: number,
-        y: number,
-        width: number,
-        height: number,
-        colour: ColourID = this.current_colour,
-    ) {
-        if (!this.is_valid_colour(colour)) return;
-
-        x = Math.round(x);
-        y = Math.round(y);
-        width = Math.round(width);
-        height = Math.round(height);
-
-        if (x < 0) {
-            width += x;
-            x = 0;
-        }
-
-        if (y < 0) {
-            height += y;
-            y = 0;
-        }
-
-        width = Math.min(width, 256 - x);
-        height = Math.min(height, 256 - y);
-
-        if (width > 0 && height > 0) {
-            for (let dy = 0; dy < height; dy++) {
-                this.pixels.fill(
-                    colour,
-                    (y + dy) * this.width + x,
-                    (y + dy) * this.width + x + width,
-                );
-            }
-        }
-    }
-
-    outline_rect(
-        x: number,
-        y: number,
-        width: number,
-        height: number,
-        colour: ColourID = this.current_colour,
-    ) {
-        if (width > 0 && height > 0) {
-            const x2 = x + width - 1;
-            const y2 = y + height - 1;
-
-            this.line(x, y, x2, y, colour);
-            this.line(x, y, x, y2, colour);
-            this.line(x, y2, x2, y2, colour);
-            this.line(x2, y, x2, y2, colour);
-        }
-    }
-
     protected previous_point: [number, number] = [0, 0];
     line(x2: number, y2: number, colour?: ColourID): void;
     line(x1: number, y1: number, x2: number, y2: number, colour?: ColourID): void;
@@ -312,6 +281,204 @@ export class Sprite {
             if (e2 < dx) {
                 error += dx;
                 y += sy;
+            }
+        }
+    }
+
+    fill_square(
+        x: number,
+        y: number,
+        size: number,
+        colour?: ColourID,
+    ) {
+        this.fill_rect(x, y, size, size, colour);
+    }
+
+    fill_rect(
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        colour: ColourID = this.current_colour,
+    ) {
+        if (!this.is_valid_colour(colour)) return;
+
+        x = Math.round(x);
+        y = Math.round(y);
+        width = Math.round(width);
+        height = Math.round(height);
+
+        if (x < 0) {
+            width += x;
+            x = 0;
+        }
+
+        if (y < 0) {
+            height += y;
+            y = 0;
+        }
+
+        width = Math.min(width, 256 - x);
+        height = Math.min(height, 256 - y);
+
+        if (width > 0 && height > 0) {
+            for (let dy = 0; dy < height; dy++) {
+                this.pixels.fill(
+                    colour,
+                    (y + dy) * this.width + x,
+                    (y + dy) * this.width + x + width,
+                );
+            }
+        }
+    }
+
+    outline_square(
+        x: number,
+        y: number,
+        size: number,
+        colour?: ColourID,
+    ) {
+        this.outline_rect(x, y, size, size, colour);
+    }
+
+    outline_rect(
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        colour: ColourID = this.current_colour,
+    ) {
+        if (width > 0 && height > 0) {
+            const x2 = x + width - 1;
+            const y2 = y + height - 1;
+
+            this.line(x, y, x2, y, colour);
+            this.line(x, y, x, y2, colour);
+            this.line(x, y2, x2, y2, colour);
+            this.line(x2, y, x2, y2, colour);
+        }
+    }
+
+    fill_circle(
+        x: number,
+        y: number,
+        size: number,
+        colour?: ColourID,
+    ) {
+        this.fill_ellipse(x, y, size, size, colour);
+    }
+
+    fill_ellipse(
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        colour: ColourID = this.current_colour,
+    ) {
+        const rx = width / 2;
+        const ry = height / 2;
+        const cx = x + rx - 0.5;
+        const cy = y + ry - 0.5;
+
+        const min_y = Math.max(0, Math.floor(y));
+        const max_y = Math.min(Math.ceil(y + height), this.height);
+
+        for (let y = min_y; y < max_y; y++) {
+            if (y - cy > ry) break;
+
+            const dx = rx * Math.sqrt(1 - ((y - cy) / ry) ** 2);
+
+            const x1 = Math.max(0, Math.ceil(cx - dx));
+            const x2 = Math.min(Math.ceil(cx + dx), this.width);
+
+            if (x1 < x2) {
+                this.pixels.fill(
+                    colour,
+                    y * this.width + x1,
+                    y * this.width + x2,
+                );
+            }
+        }
+    }
+
+    outline_circle(
+        x: number,
+        y: number,
+        size: number,
+        colour?: ColourID,
+    ) {
+        this.outline_ellipse(x, y, size, size, colour);
+    }
+
+    outline_ellipse(
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        colour: ColourID = this.current_colour,
+    ) {
+        const rx = width / 2;
+        const ry = height / 2;
+        const cx = x + rx - 0.5;
+        const cy = y + ry - 0.5;
+
+        const min_y = Math.floor(y);
+        const max_y = y + height + 1;
+
+        let px1: number = null, px2: number = null;
+
+        for (let dy = min_y; dy < max_y; dy++) {
+            const fill = (x1: number, x2: number = x1 + 1, y: number = dy) => {
+                if (y < 0 || y >= this.height) return;
+
+                x1 = Math.max(0, x1);
+                x2 = Math.min(x2, this.width);
+
+                if (x1 < x2) {
+                    this.pixels.fill(
+                        colour,
+                        y * this.width + x1,
+                        y * this.width + x2,
+                    );
+                }
+            };
+
+            if (Math.abs(dy - cy) > ry) {
+                if (dy > min_y) {
+                    fill(px1, px2, dy - 1);
+                    return;
+                }
+            } else {
+                const dx = rx * Math.sqrt(1 - ((dy - cy) / ry) ** 2);
+
+                const x1 = Math.ceil(cx - dx);
+                const x2 = Math.ceil(cx + dx);
+
+                if (px1 === null || px2 === null) {
+                    fill(x1, x2);
+                } else {
+                    if (x1 < px1) {
+                        fill(x1, px1);
+                    } else {
+                        fill(x1);
+
+                        if (x1 > px1) {
+                            fill(px1, x1, dy - 1);
+                        }
+                    }
+
+                    if (x2 > px2) {
+                        fill(px2, x2);
+                    } else {
+                        fill(x2 - 1);
+
+                        if (x2 < px2) {
+                            fill(x2, px2, dy - 1);
+                        }
+                    }
+                }
+
+                [px1, px2] = [x1, x2];
             }
         }
     }
@@ -397,13 +564,15 @@ export class Sprite {
 
         const {
             font: font_name = this.font,
-            colour = this.current_colour,
             scale = 1,
             scale_x = scale,
             scale_y = scale,
             // rotate = 0,
             // cx = sprite.width * scale_x / 2,
             // cy = sprite.height * scale_y / 2,
+            colour = this.current_colour,
+            map = {[WHITE]: colour},
+            smooth = true,
         } = options ?? {};
 
         let offset_x = x;
@@ -429,9 +598,8 @@ export class Sprite {
                         {
                             scale_x,
                             scale_y,
-                            map: {
-                                [WHITE]: colour,
-                            },
+                            map,
+                            smooth,
                         },
                     );
                     offset_x += (glyph.width - 1) * scale_x;

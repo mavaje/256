@@ -43,37 +43,27 @@ export class Display extends View {
             this.cursors[client.id]?.destruct();
             delete this.cursors[client.id];
         });
+
+        const font_file = Resources.font_file();
+
+        font_file.save('mono2');
     }
 
     update(tick: number) {
-        this.clear();
         // if (tick) return;
+
+        this.clear();
+
+        // const font_file = Resources.font_file();
+        // this.stamp(font_file.sprite);
+
+        this.print('ABC123');
 
         this.render();
 
         Object.values(this.cursors)
-            .forEach(({x, y, pressed}) => {
-
-
-                [
-                    RED,
-                    ORANGE,
-                    YELLOW,
-                    LIME,
-                    AZURE,
-                    BLUE,
-                    PURPLE,
-                    PINK,
-                ].forEach((colour: ColourID, i) => {
-                    const angle = i * Math.PI / 4 + tick / 8;
-                    this.fill_rect(
-                        x + 6 * Math.sin(angle) - 1,
-                        y + 6 * Math.cos(angle) - 1,
-                        2,
-                        2,
-                        colour,
-                    );
-                });
+            .forEach(cursor => {
+                cursor.render(this, tick);
             });
     }
 
